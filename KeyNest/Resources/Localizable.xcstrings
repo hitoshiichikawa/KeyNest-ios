@@ -142,6 +142,14 @@
         "ja" : { "stringUnit" : { "state" : "translated", "value" : "サービス識別子" } }
       }
     },
+    "example.com" : {
+      "shouldTranslate" : false
+    },
+    "Web domain (e.g. example.com). For apps, use the app's official website domain." : {
+      "localizations" : {
+        "ja" : { "stringUnit" : { "state" : "translated", "value" : "Web ドメイン（例: example.com）。アプリの場合は公式サイトのドメインを入れてください。" } }
+      }
+    },
     "Username" : {
       "localizations" : {
         "ja" : { "stringUnit" : { "state" : "translated", "value" : "ユーザー名" } }

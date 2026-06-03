@@ -66,7 +66,9 @@ struct CredentialEditView: View {
                     text: $viewModel.serviceIdentifier,
                     error: viewModel.fieldError?.field == .serviceIdentifier ? "Required" : nil,
                     keyboard: .URL,
-                    autocapitalization: .never
+                    autocapitalization: .never,
+                    prompt: "example.com",
+                    help: "Web domain (e.g. example.com). For apps, use the app's official website domain."
                 )
                 LabeledField(
                     title: "Username",
@@ -155,10 +157,16 @@ private struct LabeledField: View {
     var error: String?
     var keyboard: UIKeyboardType = .default
     var autocapitalization: TextInputAutocapitalization = .sentences
+    var prompt: LocalizedStringKey? = nil
+    var help: LocalizedStringKey? = nil
 
     var body: some View {
         VStack(alignment: .leading, spacing: 4) {
-            TextField(title, text: $text)
+            TextField(
+                title,
+                text: $text,
+                prompt: prompt.map { Text($0) }
+            )
                 .font(KNFont.body)
                 .keyboardType(keyboard)
                 .textInputAutocapitalization(autocapitalization)
@@ -167,6 +175,10 @@ private struct LabeledField: View {
                 Text(error)
                     .font(KNFont.caption)
                     .foregroundStyle(KNColor.danger)
+            } else if let help {
+                Text(help)
+                    .font(KNFont.caption)
+                    .foregroundStyle(KNColor.text3)
             }
         }
     }

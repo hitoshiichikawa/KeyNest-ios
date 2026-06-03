@@ -41,6 +41,10 @@ string catalog, and an App Switcher privacy shield masks the suspend-time snapsh
 "6.3 (optional) E2E 検証手順" walks through Sim/device enablement, password fill,
 passkey register/assert, Danger Zone, App Switcher shield, and JA fallback.
 
+**AutoFill FAQ:** `docs/autofill-troubleshooting.md` explains what to type in the
+Service identifier field (web domain, not bundle ID), how to find the
+associated domain for an app, and why the candidate sometimes doesn't show up.
+
 Remaining: real-device manual verification per the 6.3 checklist; App Store-bound
 signing (DEVELOPMENT_TEAM) is intentionally not in VCS.
 

@@ -539,9 +539,46 @@ Sim / 実機での目視検証手順。`scripts/build-test.sh` の自動テス�
 - 6.3 手動 E2E 手順を impl-notes に文書化
 - 既存 KeyNestKitTests 94 件は緑のまま維持
 
+## Phase 6 後の追補
+
+### Simulator 起動対応（コード署名なし）
+- 課題: `xcodebuild ... CODE_SIGNING_ALLOWED=NO` で Sim ビルドすると entitlements が
+  embed されず、`FileManager.containerURL(forSecurityApplicationGroupIdentifier:)` と
+  `kSecAttrAccessGroup` 付きの Keychain クエリが nil / `errSecMissingEntitlement` を
+  返してアプリが起動直後に `AppDatabaseError.appGroupUnavailable` で `StartupErrorView` に
+  落ちる（screenshot で確認済み）。
+- 対応:
+  - `AppGroup.databaseURL()` に `#if targetEnvironment(simulator)` ガードでフォールバック。
+    Application Support 配下に `keynest.db` を作る（拡張からは見えない／本体 SwiftUI 確認用）。
+  - `DataKeyProvider` の `accessGroup` を `String?` に変更し、Sim では nil で生成。
+    `KeychainDataKeyStore` のクエリ構築 3 箇所で `if let accessGroup` ガードに変更。
+    `DataKeyProvider.defaultAccessGroup` を新設して device/Sim を分岐。
+  - 上記により Sim では Keychain が app-local（access group 非共有）で動作。
+    実機 / 拡張共有経路は **完全に従来通り**（コンパイル分岐のみ）。
+- 接続: `xcodebuild ... CODE_SIGN_IDENTITY=- CODE_SIGNING_REQUIRED=NO build`
+  → `xcrun simctl install booted <KeyNest.app>` → `xcrun simctl launch booted <bundleID>`。
+  Sim で Onboarding → List → Edit までフル UI が描画されることを目視確認済み。
+- `Info.plist`（KeyNest / AutoFillExtension）に `CFBundleIdentifier =
+  $(PRODUCT_BUNDLE_IDENTIFIER)` 等の必須キーが抜けていたので追加（XcodeGen が手動
+  Info.plist には generate しないため）。
+
+### AutoFill 仕様の UX 補強（Service identifier）
+- Android の「インストール済みアプリ一覧から選択」は iOS に等価な公開 API が無い
+  ため iOS では実装不可能。代替として:
+  - `CredentialEditView.LabeledField` に `prompt` / `help` パラメータを追加。
+    Service identifier に prompt = `example.com`、help = "Web domain (e.g.
+    example.com). For apps, use the app's official website domain." を表示。
+  - `docs/autofill-troubleshooting.md` 新規。"何を入れるか" / 公式サイト確認 /
+    AASA (`/.well-known/apple-app-site-association`) 確認 / 設定での試行手順 /
+    サブドメイン仕様 / OS バージョン要件 を整理。
+- 1Password / Bitwarden / Apple Keychain も **同じ iOS 制約** であることを FAQ で
+  説明。URL 入力 → 自動 domain 抽出は今後の改善候補（`ServiceIdentifierMatcher.normalize`
+  を Edit の onSubmit で適用するだけ）。
+
 ## 完走
 - Phase 0〜6 全タスク完了。
-- 残るは Sim/実機での手動検証（6.3 の手順に従う）と App Store 配布手前の証明書 / Team ID 設定（仕様外）。
+- Sim 起動も AppGroup / Keychain Sim fallback により可能（Onboarding ＋ List 描画を目視確認）。
+- 残るは実機での手動検証（6.3 の手順）と App Store 配布手前の証明書 / Team ID 設定（仕様外）。
 - Phase 4（AutoFill 拡張 — パスワード: `ServiceIdentifierMatcher` / `CredentialIdentityStoreSync` /
   `CredentialProviderViewController`）。serviceIdentifier の正規化はここで実装（UseCase 側は現状 blank チェックのみ）。
 - Phase 5（AutoFill 拡張 — PassKey: 登録 / assertion coordinator。`PasskeyCreator` / `PasskeyAssertion` を

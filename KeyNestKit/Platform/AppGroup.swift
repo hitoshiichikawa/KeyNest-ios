@@ -18,13 +18,33 @@ public enum AppGroup {
     /// SQLite database file name inside the shared container.
     public static let databaseFileName = "keynest.db"
 
-    /// Absolute URL of the shared database, or nil if the App Group is not
-    /// provisioned (misconfiguration — callers should treat as fatal).
+    /// Absolute URL of the shared database. Prefers the App Group container
+    /// (production: app ⇄ extension share the vault). On Simulator builds
+    /// where the App Group entitlement is unavailable (no signing identity),
+    /// falls back to the host app's Application Support directory so the
+    /// SwiftUI shell still boots for visual / smoke testing.
+    ///
+    /// The fallback is **app-local** — the AutoFill extension cannot see it.
+    /// Production behavior on signed devices is unchanged.
     public static func databaseURL(
         fileManager: FileManager = .default
     ) -> URL? {
-        fileManager
-            .containerURL(forSecurityApplicationGroupIdentifier: identifier)?
-            .appendingPathComponent(databaseFileName)
+        if let shared = fileManager.containerURL(forSecurityApplicationGroupIdentifier: identifier) {
+            return shared.appendingPathComponent(databaseFileName)
+        }
+        #if targetEnvironment(simulator)
+        SafeLog.warn("App Group container unavailable; using local Application Support (Simulator fallback)")
+        guard let support = try? fileManager.url(
+            for: .applicationSupportDirectory,
+            in: .userDomainMask,
+            appropriateFor: nil,
+            create: true
+        ) else {
+            return nil
+        }
+        return support.appendingPathComponent(databaseFileName)
+        #else
+        return nil
+        #endif
     }
 }

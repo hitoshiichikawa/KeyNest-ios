@@ -66,11 +66,22 @@ public final class DataKeyProvider: DataKeyProviding {
     private var cached: SymmetricKey?
 
     /// Production initializer: backs onto the shared Keychain + Secure Enclave.
+    /// On Simulator builds the shared access group is unavailable without
+    /// signing; we fall back to the app-local Keychain so the SwiftUI shell
+    /// can boot for smoke-testing (extension parity is lost — Sim only).
     public convenience init(
-        accessGroup: String = AppGroup.keychainAccessGroup,
+        accessGroup: String? = DataKeyProvider.defaultAccessGroup,
         forceFallback: Bool = false
     ) {
         self.init(store: KeychainDataKeyStore(accessGroup: accessGroup, forceFallback: forceFallback))
+    }
+
+    public static var defaultAccessGroup: String? {
+        #if targetEnvironment(simulator)
+        return nil
+        #else
+        return AppGroup.keychainAccessGroup
+        #endif
     }
 
     /// Test seam: inject a fake [DataKeyStore] and/or a deterministic byte
@@ -198,7 +209,7 @@ protocol DataKeyStore {
 final class KeychainDataKeyStore: DataKeyStore {
     private static let ecies: SecKeyAlgorithm = .eciesEncryptionStandardX963SHA256AESGCM
 
-    private let accessGroup: String
+    private let accessGroup: String?
     private let kekTag: Data
     private let dekAccount: String
     private let dekService: String
@@ -206,7 +217,7 @@ final class KeychainDataKeyStore: DataKeyStore {
     let sealsKeyMaterial: Bool
 
     init(
-        accessGroup: String,
+        accessGroup: String?,
         forceFallback: Bool,
         kekTag: Data = Data("io.github.hitoshiichikawa.ios.keynest.kek.v1".utf8),
         dekAccount: String = "keynest.dek.v1",
@@ -222,13 +233,14 @@ final class KeychainDataKeyStore: DataKeyStore {
     // MARK: DEK blob (generic password)
 
     private func blobIdentityQuery() -> [String: Any] {
-        [
+        var q: [String: Any] = [
             kSecClass as String: kSecClassGenericPassword,
             kSecAttrAccount as String: dekAccount,
             kSecAttrService as String: dekService,
-            kSecAttrAccessGroup as String: accessGroup,
             kSecUseDataProtectionKeychain as String: true,
         ]
+        if let accessGroup { q[kSecAttrAccessGroup as String] = accessGroup }
+        return q
     }
 
     func loadSealedDataKey() throws -> Data? {
@@ -267,14 +279,15 @@ final class KeychainDataKeyStore: DataKeyStore {
     // MARK: Secure-Enclave KEK
 
     private func seKeyIdentityQuery() -> [String: Any] {
-        [
+        var q: [String: Any] = [
             kSecClass as String: kSecClassKey,
             kSecAttrKeyType as String: kSecAttrKeyTypeECSECPrimeRandom,
             kSecAttrTokenID as String: kSecAttrTokenIDSecureEnclave,
             kSecAttrApplicationTag as String: kekTag,
-            kSecAttrAccessGroup as String: accessGroup,
             kSecUseDataProtectionKeychain as String: true,
         ]
+        if let accessGroup { q[kSecAttrAccessGroup as String] = accessGroup }
+        return q
     }
 
     private func loadSecureEnclaveKey() throws -> SecKey? {
@@ -303,17 +316,18 @@ final class KeychainDataKeyStore: DataKeyStore {
         ) else {
             throw DataKeyError.keyGenerationFailed
         }
+        var privateAttrs: [String: Any] = [
+            kSecAttrIsPermanent as String: true,
+            kSecAttrApplicationTag as String: kekTag,
+            kSecAttrAccessControl as String: access,
+            kSecUseDataProtectionKeychain as String: true,
+        ]
+        if let accessGroup { privateAttrs[kSecAttrAccessGroup as String] = accessGroup }
         let attributes: [String: Any] = [
             kSecAttrKeyType as String: kSecAttrKeyTypeECSECPrimeRandom,
             kSecAttrKeySizeInBits as String: 256,
             kSecAttrTokenID as String: kSecAttrTokenIDSecureEnclave,
-            kSecPrivateKeyAttrs as String: [
-                kSecAttrIsPermanent as String: true,
-                kSecAttrApplicationTag as String: kekTag,
-                kSecAttrAccessControl as String: access,
-                kSecAttrAccessGroup as String: accessGroup,
-                kSecUseDataProtectionKeychain as String: true,
-            ],
+            kSecPrivateKeyAttrs as String: privateAttrs,
         ]
         var error: Unmanaged<CFError>?
         guard let key = SecKeyCreateRandomKey(attributes as CFDictionary, &error) else {
