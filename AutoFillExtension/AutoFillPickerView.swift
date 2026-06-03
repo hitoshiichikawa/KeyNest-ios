@@ -7,7 +7,9 @@ import KeyNestKit
 struct AutoFillPickerView: View {
     let matches: [Credential]
     let all: [Credential]
+    let suggestedServiceIdentifier: String
     let onSelect: (Credential) -> Void
+    let onSaveNew: () -> Void
     let onCancel: () -> Void
 
     @State private var query: String = ""
@@ -15,6 +17,16 @@ struct AutoFillPickerView: View {
     var body: some View {
         NavigationStack {
             List {
+                if !suggestedServiceIdentifier.isEmpty {
+                    Section {
+                        Button(action: onSaveNew) {
+                            Label(
+                                "Save new for \(suggestedServiceIdentifier)",
+                                systemImage: "plus.circle.fill"
+                            )
+                        }
+                    }
+                }
                 if !matches.isEmpty {
                     Section {
                         ForEach(matches) { credential in

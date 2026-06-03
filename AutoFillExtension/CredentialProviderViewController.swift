@@ -42,12 +42,24 @@ final class CredentialProviderViewController: ASCredentialProviderViewController
             failSafely()
             return
         }
+        let rawIdentifiers = serviceIdentifiers.map(\.identifier)
         Task {
             do {
                 let snapshot = try await services.credentialRepository.listAll(sort: .updatedDesc)
-                let matches = filterMatches(snapshot, requested: serviceIdentifiers)
+                let matches = AutoFillCandidateSelection.filter(
+                    all: snapshot,
+                    requestedRawServiceIdentifiers: rawIdentifiers
+                )
+                let suggested = AutoFillCandidateSelection.suggestedServiceIdentifier(
+                    from: rawIdentifiers
+                )
                 await MainActor.run {
-                    renderList(matches: matches, all: snapshot)
+                    renderList(
+                        matches: matches,
+                        all: snapshot,
+                        suggestedServiceIdentifier: suggested,
+                        services: services
+                    )
                 }
             } catch {
                 failSafely()
@@ -56,12 +68,24 @@ final class CredentialProviderViewController: ASCredentialProviderViewController
     }
 
     @MainActor
-    private func renderList(matches: [Credential], all: [Credential]) {
+    private func renderList(
+        matches: [Credential],
+        all: [Credential],
+        suggestedServiceIdentifier: String,
+        services: ServiceLocator
+    ) {
         let view = AutoFillPickerView(
             matches: matches,
             all: all,
+            suggestedServiceIdentifier: suggestedServiceIdentifier,
             onSelect: { [weak self] credential in
                 Task { await self?.authenticateAndFill(credential: credential) }
+            },
+            onSaveNew: { [weak self] in
+                self?.showSaveNewForm(
+                    prefilledServiceIdentifier: suggestedServiceIdentifier,
+                    services: services
+                )
             },
             onCancel: { [weak self] in
                 self?.cancelByUser()
@@ -70,16 +94,25 @@ final class CredentialProviderViewController: ASCredentialProviderViewController
         hostConfirmView(view)
     }
 
-    private func filterMatches(
-        _ all: [Credential],
-        requested: [ASCredentialServiceIdentifier]
-    ) -> [Credential] {
-        guard !requested.isEmpty else { return all }
-        let needles = requested.map { ServiceIdentifierMatcher.normalize($0.identifier) }
-        return all.filter { credential in
-            let stored = ServiceIdentifierMatcher.normalize(credential.serviceIdentifier)
-            return !stored.isEmpty && needles.contains(stored)
-        }
+    @MainActor
+    private func showSaveNewForm(prefilledServiceIdentifier: String, services: ServiceLocator) {
+        let view = AutoFillSaveNewView(
+            prefilledServiceIdentifier: prefilledServiceIdentifier,
+            services: services,
+            onSave: { [weak self] user, password in
+                self?.completeWithSavedCredential(user: user, password: password)
+            },
+            onCancel: { [weak self] in self?.cancelByUser() }
+        )
+        hostConfirmView(view)
+    }
+
+    @MainActor
+    private func completeWithSavedCredential(user: String, password: String) {
+        extensionContext.completeRequest(
+            withSelectedCredential: ASPasswordCredential(user: user, password: password),
+            completionHandler: nil
+        )
     }
 
     // MARK: - Silent path (no UI)
