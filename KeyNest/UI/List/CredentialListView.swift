@@ -132,6 +132,14 @@ struct CredentialListView: View {
             }
             .accessibilityLabel("Add credential")
         }
+        ToolbarItem(placement: .topBarLeading) {
+            NavigationLink {
+                SettingsView(services: services)
+            } label: {
+                Image(systemName: "gearshape")
+            }
+            .accessibilityLabel("Settings")
+        }
     }
 }
 

@@ -79,7 +79,8 @@
   - `KeyNest/UI/Edit/CredentialEditViewModel.swift`（new / edit モード、edit ロード時に `BiometricAuthenticating.authenticate` → `UnlockVaultUseCase` で復号、`PlaintextCredential` 保持・deinit で wipe、`UpdateCredentialUseCase` は password 未変更時 ciphertext 温存）/ `CredentialEditView.swift`（生体プロンプト中ローダ、cancel/failed 時 Retry View、reveal toggle で `SecureField`/`TextField` 切替、custom fields≤10、Save/Delete/Duplicate、destructive は `confirmationDialog`、`.privacySensitive()`）/ `CredentialListView` から `+` 新規導線と row tap の編集遷移を配線。重複検出は serviceIdentifier+username の 250ms debounce 背景 lookup で **non-blocking 警告**（Android パリティ）
   - Domain Picker sheet は Phase 4 の `ServiceIdentifierMatcher` と一緒に追加（現状は URL TextField 直接入力）
   - _Requirements: 7.2, 5.1_
-- [ ] 3.4 Settings（autofill 状態・ロック方式・Vault メタデータ・passkey provider 状態・OSS・danger 入口）
+- [x] 3.4 Settings（autofill 状態・ロック方式・Vault メタデータ・passkey provider 状態・OSS・danger 入口）
+  - `KeyNest/UI/Settings/SettingsViewModel.swift`（`@MainActor` + `@Observable`、`ObserveVaultMetadataUseCase` を `.task` で消費し metadata 変化時に `GetVaultStorageUsageUseCase` を再測。`GetDeviceLockStatusUseCase` + `ASCredentialIdentityStore.state()` は scenePhase=.active で再サンプル。PassKey 状態は `#available(iOS 17,*)` + autofill で導出）/ `SettingsView.swift`（AutoFill / Security / Vault / About / Danger Zone セクション、autofill 無効時は `openSettingsURLString` への deeplink ボタン、OSS / Danger Zone は Phase 3.5 placeholder）。CredentialListView の左 toolbar に Settings 入口
   - _Requirements: 7.3_
 - [ ] 3.5 Danger Zone（生体→確認ダイアログ→ClearVault、鍵削除）＋ OSS ライセンス画面
   - _Requirements: 7.4_

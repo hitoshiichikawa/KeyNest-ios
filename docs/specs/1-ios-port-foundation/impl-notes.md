@@ -267,11 +267,41 @@ Flow 相当）は本フェーズでは入れない（スナップショットの
 - 重複検出を非ブロッキング警告にした点（Android パリティ）。Save 経路で hard block する選択肢もある。
 - Custom fields の key/value 順を保つために `UUID` を Identifiable に使った。Save 時は順序維持。
 
+## Phase 3.4 Settings — 完了
+
+### 3.4 設定画面
+- `KeyNest/UI/Settings/SettingsViewModel.swift`（`@MainActor` + `@Observable`）。情報源:
+  - `ObserveVaultMetadataUseCase`: `count` + `latestUpdatedAt` を `.task` で常時購読。メタデータが
+    変わるたびに `GetVaultStorageUsageUseCase` を await で再測（行追加/削除で WAL も変動するため
+    snapshot 単体だと取りこぼす）。
+  - `GetDeviceLockStatusUseCase`: LAContext snapshot。`scenePhase == .active` で再サンプル。
+  - **AutoFill 状態**: `ASCredentialIdentityStore.shared.state()` を await。`scenePhase` で再サンプル
+    （ユーザーは Settings.app からトグルしてアプリに戻る動線）。
+  - **PassKey provider 状態**: `#available(iOS 17, *)` で `.unsupported` を弾き、それ以外は AutoFill
+    有効値をミラー。design `PasskeyProviderStatus` の 3 値に正規化。
+- `KeyNest/UI/Settings/SettingsView.swift`: `Form` の Sections = AutoFill / Security / Vault /
+  About / Danger Zone。autofill 無効時は `UIApplication.openSettingsURLString` への deeplink
+  ボタンを footer 説明文と一緒に出す（iOS は AutoFill トグルへの直接遷移は不可、Req 7.5 と同方針）。
+  OSS と Danger Zone は `PlaceholderView`＋ `NavigationLink` で配線、中身は Phase 3.5 で実装。
+- `CredentialListView` の `topBarLeading` に Settings 入口（歯車）を追加。
+
+### 注意点
+- **`Section("title") { ... }` の string-title overload が Form コンテキストで Swift 6 の overload
+  解決にひっかかる**ことがある（Xcode 17 / iOS 17 SDK）。本ファイルでは `Section { content } header: { Text("…") }`
+  の明示形に統一。string-title 形は短いが解決不能エラー時の診断が分かりにくいので明示形を採用。
+- `ASCredentialIdentityStore.state()` は `state.isEnabled` のみ使用。`supportsIncrementalUpdates` 等は
+  Phase 4 の IdentityStore sync 配線時に再評価。
+
+### 確認したい論点
+- AutoFill 状態の再サンプル頻度を `scenePhase` 1 拍のみにした点。タイマー化 / NotificationCenter 監視
+  も選べるが Settings 画面でしか参照しないため最小化。
+- PassKey 状態を AutoFill ミラーで導出した点（実際は `ASCredentialIdentityStore` の細粒度 API は
+  iOS 17 でも passkey 個別 toggle を返さない）。
+
 ## 次フェーズ（本レビュー後）
-- Phase 3.4（Settings）。`ObserveVaultMetadataUseCase` / `GetVaultStorageUsageUseCase` /
-  `GetDeviceLockStatusUseCase` を `@Observable` ViewModel で消費。AutoFill 有効状態は iOS の
-  `ASCredentialIdentityStore.state(...)`、PassKey provider 状態は `ASSettingsHelper` 系 API か
-  `passkey` capability の Info.plist 宣言からの推定。OSS 入口と Danger Zone 入口を配線。
+- Phase 3.5（Danger Zone ＋ OSS）。Danger Zone は `BiometricAuthenticating.authenticate` →
+  `confirmationDialog` 二段階で `ClearVaultUseCase`。OSS はバンドルした JSON / plist から
+  ライセンス一覧を表示。Manrope / JetBrains Mono / GRDB.swift のエントリを最低限同梱。
 - Phase 4（AutoFill 拡張 — パスワード: `ServiceIdentifierMatcher` / `CredentialIdentityStoreSync` /
   `CredentialProviderViewController`）。serviceIdentifier の正規化はここで実装（UseCase 側は現状 blank チェックのみ）。
 - Phase 5（AutoFill 拡張 — PassKey: 登録 / assertion coordinator。`PasskeyCreator` / `PasskeyAssertion` を
