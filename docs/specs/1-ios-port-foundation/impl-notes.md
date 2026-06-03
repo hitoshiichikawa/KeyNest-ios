@@ -298,10 +298,43 @@ Flow 相当）は本フェーズでは入れない（スナップショットの
 - PassKey 状態を AutoFill ミラーで導出した点（実際は `ASCredentialIdentityStore` の細粒度 API は
   iOS 17 でも passkey 個別 toggle を返さない）。
 
+## Phase 3.5 Danger Zone + OSS — 完了
+
+### 3.5 Danger Zone
+- `KeyNest/UI/Danger/DangerZoneViewModel.swift`（`@MainActor` + `@Observable`）。Android
+  `DangerZoneViewModel` の **strict 状態機械** を踏襲:
+
+      idle ──tap──▶ authenticating ──succeeded──▶ confirming ──confirm──▶ clearing ──ok──▶ cleared
+                          │                            │                      │
+                     cancel/fail                    cancel                 failure
+                          ▼                            ▼                      ▼
+                     idle / failed                   idle                   failed
+
+  `.clearing` は **`.confirming` からのみ** 到達でき、`.confirming` は **生体認証成功からのみ**
+  到達できる。`startClearFlow()` で transition の起点をガード（idle/failed/cleared 以外は no-op）。
+- `KeyNest/UI/Danger/DangerZoneView.swift`: Phase ごとに `statusLabel`（authenticating /
+  clearing / cleared / 通常）と footer メッセージ（cleared / failed）を出し分け。
+  `phase == .confirming` で `confirmationDialog` を表示し、ここでのみ
+  `ClearVaultUseCase` を発射する経路を提供。
+
+### 3.5 OSS Licenses
+- `KeyNest/UI/Oss/OssEntry.swift`: `OssEntry`（name / license / url? / summary）。`OssLicenses.entries`
+  に Manrope（OFL 1.1）、JetBrains Mono（OFL 1.1）、GRDB.swift（MIT）の最低 3 件。
+  **ライセンス全文の bundle は Phase 6 にずらした**: 現状は短いサマリ + canonical URL への
+  `Link` で代用。Phase 6 でローカライズと一緒に `.txt` 同梱を再評価。
+- `OssLicensesView.swift`: `List` + `Link`。expandable accordion（Android 等価）は OS の
+  reader-style overlay があるため SwiftUI ではコンパクト表示で十分と判断。
+- `SettingsView` の OSS / Danger placeholder を本物 View へ差し替え、`PlaceholderView` を削除。
+
+### 確認したい論点
+- OSS 全文の bundle 遅延（現状 URL リンク）。App Store 配布前にライセンス全文の同梱が必要なら
+  Phase 6 で `.txt` リソース化。
+- Danger Zone の `.cleared` 後の遷移: 現状は同画面に「Vault cleared」表示のみ。List 画面へ
+  pop する自動遷移にした方が UX 上明快かもしれない（要レビュー）。
+
 ## 次フェーズ（本レビュー後）
-- Phase 3.5（Danger Zone ＋ OSS）。Danger Zone は `BiometricAuthenticating.authenticate` →
-  `confirmationDialog` 二段階で `ClearVaultUseCase`。OSS はバンドルした JSON / plist から
-  ライセンス一覧を表示。Manrope / JetBrains Mono / GRDB.swift のエントリを最低限同梱。
+- Phase 3.6（Onboarding）。`PasskeyProviderStatus` 表示と AutoFill 有効化導線を最初の起動時に
+  出す。`@AppStorage` で 1 回完了フラグを保持。
 - Phase 4（AutoFill 拡張 — パスワード: `ServiceIdentifierMatcher` / `CredentialIdentityStoreSync` /
   `CredentialProviderViewController`）。serviceIdentifier の正規化はここで実装（UseCase 側は現状 blank チェックのみ）。
 - Phase 5（AutoFill 拡張 — PassKey: 登録 / assertion coordinator。`PasskeyCreator` / `PasskeyAssertion` を

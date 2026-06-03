@@ -82,7 +82,8 @@
 - [x] 3.4 Settings（autofill 状態・ロック方式・Vault メタデータ・passkey provider 状態・OSS・danger 入口）
   - `KeyNest/UI/Settings/SettingsViewModel.swift`（`@MainActor` + `@Observable`、`ObserveVaultMetadataUseCase` を `.task` で消費し metadata 変化時に `GetVaultStorageUsageUseCase` を再測。`GetDeviceLockStatusUseCase` + `ASCredentialIdentityStore.state()` は scenePhase=.active で再サンプル。PassKey 状態は `#available(iOS 17,*)` + autofill で導出）/ `SettingsView.swift`（AutoFill / Security / Vault / About / Danger Zone セクション、autofill 無効時は `openSettingsURLString` への deeplink ボタン、OSS / Danger Zone は Phase 3.5 placeholder）。CredentialListView の左 toolbar に Settings 入口
   - _Requirements: 7.3_
-- [ ] 3.5 Danger Zone（生体→確認ダイアログ→ClearVault、鍵削除）＋ OSS ライセンス画面
+- [x] 3.5 Danger Zone（生体→確認ダイアログ→ClearVault、鍵削除）＋ OSS ライセンス画面
+  - `KeyNest/UI/Danger/DangerZoneViewModel.swift`（strict state machine: idle→authenticating→confirming→clearing→cleared/failed、`clearing` は `confirming` からのみ到達可、`confirming` は `BiometricAuthenticating.authenticate` 成功からのみ到達可。`ClearVaultUseCase` は credentials＋passkeys＋DEK を削除）/ `DangerZoneView.swift`（Phase 別 statusLabel・footer、confirmationDialog 二段階）。`KeyNest/UI/Oss/OssEntry.swift`（Manrope/JetBrains Mono OFL、GRDB.swift MIT の static エントリ）/ `OssLicensesView.swift`（List + Link）。Settings の placeholder を本物 View に差し替え
   - _Requirements: 7.4_
 - [ ] 3.6 Onboarding（iOS の自動入力有効化導線、`PasskeyProviderStatus` 表示）
   - _Requirements: 7.5_

@@ -71,7 +71,7 @@ struct SettingsView: View {
 
             Section {
                 NavigationLink {
-                    PlaceholderView(title: "Open-Source Licenses", task: "3.5")
+                    OssLicensesView()
                 } label: {
                     Label("Open-source licenses", systemImage: "doc.text")
                 }
@@ -81,7 +81,7 @@ struct SettingsView: View {
 
             Section {
                 NavigationLink {
-                    PlaceholderView(title: "Danger Zone", task: "3.5")
+                    DangerZoneView(services: services)
                 } label: {
                     Label("Danger zone", systemImage: "exclamationmark.octagon")
                         .foregroundStyle(KNColor.danger)
@@ -159,22 +159,3 @@ private struct LabelValueRow: View {
     }
 }
 
-private struct PlaceholderView: View {
-    let title: String
-    let task: String
-
-    var body: some View {
-        VStack(spacing: 12) {
-            Text(title)
-                .font(KNFont.title3)
-                .foregroundStyle(KNColor.text)
-            Text("Coming in Phase \(task)")
-                .font(KNFont.callout)
-                .foregroundStyle(KNColor.text2)
-        }
-        .frame(maxWidth: .infinity, maxHeight: .infinity)
-        .background(KNColor.bg)
-        .navigationTitle(title)
-        .navigationBarTitleDisplayMode(.inline)
-    }
-}
