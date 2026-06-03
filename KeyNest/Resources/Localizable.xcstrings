@@ -397,6 +397,16 @@
       }
     },
 
+    "Select a credential" : {
+      "localizations" : {
+        "ja" : { "stringUnit" : { "state" : "translated", "value" : "資格情報を選択" } }
+      }
+    },
+    "Pick an entry from the list, or add a new one with the + button." : {
+      "localizations" : {
+        "ja" : { "stringUnit" : { "state" : "translated", "value" : "リストから項目を選ぶか、+ ボタンで新規追加してください。" } }
+      }
+    },
     "Welcome to KeyNest" : {
       "localizations" : {
         "ja" : { "stringUnit" : { "state" : "translated", "value" : "KeyNest へようこそ" } }

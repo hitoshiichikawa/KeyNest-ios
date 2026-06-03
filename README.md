@@ -37,6 +37,10 @@ string catalog, and an App Switcher privacy shield masks the suspend-time snapsh
 `KeyNestKitTests`. Set `KEYNEST_DEVICE` to override the default simulator (e.g.
 `KEYNEST_DEVICE="iPhone 17"`).
 
+**Devices:** Universal (iPhone + iPad). iPad full-screen uses a 2-column
+`NavigationSplitView` (sidebar list + detail pane); compact width falls back
+to a stack. All four iPad orientations supported.
+
 **Manual verification:** `docs/specs/1-ios-port-foundation/impl-notes.md` →
 "6.3 (optional) E2E 検証手順" walks through Sim/device enablement, password fill,
 passkey register/assert, Danger Zone, App Switcher shield, and JA fallback.

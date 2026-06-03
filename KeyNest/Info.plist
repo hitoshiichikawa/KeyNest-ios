@@ -24,6 +24,14 @@
 	<array>
 		<string>UIInterfaceOrientationPortrait</string>
 	</array>
+	<!-- iPad: allow all four orientations (parity with Mail.app, Settings.app). -->
+	<key>UISupportedInterfaceOrientations~ipad</key>
+	<array>
+		<string>UIInterfaceOrientationPortrait</string>
+		<string>UIInterfaceOrientationPortraitUpsideDown</string>
+		<string>UIInterfaceOrientationLandscapeLeft</string>
+		<string>UIInterfaceOrientationLandscapeRight</string>
+	</array>
 
 	<!-- Bundled fonts (license parity with KeyNest: Manrope + JetBrains Mono, OFL). -->
 	<key>UIAppFonts</key>

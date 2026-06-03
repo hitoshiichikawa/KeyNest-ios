@@ -35,6 +35,11 @@ settings:
     CODE_SIGN_STYLE: Automatic
     # DEVELOPMENT_TEAM: ABCDE12345   # ← set locally / via xcconfig, do NOT commit a real value
     ENABLE_USER_SCRIPT_SANDBOXING: YES
+    # 1 = iPhone, 2 = iPad — both targets are universal so the extension
+    # is reachable from iPad's AutoFill UI as well.
+    TARGETED_DEVICE_FAMILY: "1,2"
+    SUPPORTS_MACCATALYST: NO
+    SUPPORTS_MAC_DESIGNED_FOR_IPHONE_IPAD: NO
 
 packages:
   GRDB:
