@@ -28,3 +28,4 @@ Local.xcconfig
 # CocoaPods / Carthage (unused, but guard against accidental adds)
 Pods/
 Carthage/Build/
+build/

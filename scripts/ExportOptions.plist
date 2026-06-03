@@ -1,0 +1,33 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0">
+<dict>
+    <!-- App Store distribution. App Store Connect upload destination. -->
+    <key>method</key>
+    <string>app-store-connect</string>
+
+    <!-- DEVELOPMENT_TEAM is sourced from Local.xcconfig; archive.sh forwards
+         it here so this file stays VCS-safe. -->
+    <key>teamID</key>
+    <string>$(DEVELOPMENT_TEAM)</string>
+
+    <!-- Let Xcode manage signing with App Store profiles. The Team ID above
+         scopes which provisioning profiles can be matched. -->
+    <key>signingStyle</key>
+    <string>automatic</string>
+
+    <!-- Strip Swift symbols to keep the upload small. -->
+    <key>stripSwiftSymbols</key>
+    <true/>
+
+    <!-- Don't upload symbols to Apple. KeyNest has no crash reporter and
+         the binary is open source — there's nothing to hide and nothing to
+         gain by sharing dSYMs with Apple's analytics pipeline. -->
+    <key>uploadSymbols</key>
+    <false/>
+
+    <!-- Don't include bitcode (Apple deprecated it in Xcode 14). -->
+    <key>uploadBitcode</key>
+    <false/>
+</dict>
+</plist>

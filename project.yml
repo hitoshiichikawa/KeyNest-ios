@@ -76,6 +76,11 @@ targets:
     platform: iOS
     sources:
       - path: KeyNest
+      # PrivacyInfo.xcprivacy is required by App Store Review (2024-05+).
+      # XcodeGen doesn't recognize the extension by default, so wire it
+      # in as a resource explicitly.
+      - path: KeyNest/PrivacyInfo.xcprivacy
+        buildPhase: resources
     dependencies:
       - target: KeyNestKit
         embed: true
@@ -96,6 +101,8 @@ targets:
       # Share the host app's string catalog so SwiftUI Text(...) inside the
       # extension localizes the same way (extension bundle is separate).
       - path: KeyNest/Resources/Localizable.xcstrings
+        buildPhase: resources
+      - path: AutoFillExtension/PrivacyInfo.xcprivacy
         buildPhase: resources
     dependencies:
       - target: KeyNestKit
