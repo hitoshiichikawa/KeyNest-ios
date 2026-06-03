@@ -465,10 +465,83 @@ Flow 相当）は本フェーズでは入れない（スナップショットの
 - RP 不一致時は `.failed` 経路に流して generic 失敗にしているが、UI に細かい理由を出すかは
   プライバシー方針次第。現状は generic。
 
-## 次フェーズ
-- Phase 6（ローカライズ / ハードニング / E2E 検証）。EN/JA `Localizable`、`.privacySensitive` /
-  redact 監査、Keychain ThisDeviceOnly 検査、Safari ログインフォーム / passkey RP（例 webauthn.io）
-  での E2E 手順整備。
+## Phase 6 ローカライズ + ハードニング + E2E — 完了
+
+### 6.1 Localizable EN/JA
+- `KeyNest/Resources/Localizable.xcstrings`（Xcode 15+ JSON string catalog）。`sourceLanguage: en` で
+  EN テキストをキーに、JA 翻訳を 80+ key 収録（List / Edit / Settings / Onboarding / Danger / OSS /
+  AutoFill picker / PassKey confirm 横断）。`project.yml` `developmentLanguage: en` +
+  `knownRegions: [en, ja]`。SwiftUI `Text("…")` リテラルは `LocalizedStringKey` ブリッジで自動解決。
+- **積み残し**: `Text("\(count) credentials")` 等の補間文字列は `xcstrings` に enum 化していない。
+  build は通り EN にフォールバックするのでブロッカーではないが、Sim で JA 確認時に違和感が出たら
+  個別翻訳を足す方針。
+
+### 6.2 ハードニング
+- **App Switcher 保護** (NFR 1.2): `KeyNestApp.AppShell` の `ZStack` overlay。
+  `@Environment(\.scenePhase) != .active` で `PrivacyShield`（KeyNest ロゴ + ブランド色のフル画面）を
+  かぶせる。OS 撮影のスナップショットには vault が写らない。fade-in/out 150ms で UX の唐突さを緩和。
+- **`.privacySensitive()` 監査**: 既に Edit 画面の `PasswordField` / `CustomFieldRow` に適用済み。
+  List / Settings の label / username / serviceIdentifier は表示前提（Android `toString` redact と
+  同じ判断＝plaintext password / private key / custom field value のみが redact 対象）。
+- **`SafeLog` 監査**: 4 callsite（`UnlockVaultUseCase` / `EncryptedCustomFieldsCodec` /
+  `CredentialIdentityStoreSync` の replace/save/remove/removeAll）すべて **静的メッセージ ＋ error type 名のみ**。
+  `Logger` interpolation は `privacy: .public` でロック＝動的データを混入させる経路がそもそも無い。
+- **Keychain ThisDeviceOnly** (NFR 1.3): `KeychainDataKeyStore`
+  （`KeyNestKit/Crypto/DataKeyProvider.swift`）で `kSecAttrAccessible = kSecAttrAccessibleWhenUnlockedThisDeviceOnly`
+  ＋ `kSecAttrSynchronizable = false`、Secure Enclave KEK 側は `.privateKeyUsage` のみで access control
+  に biometry を **含めない**（アプリ層ゲート方針＝design 確定事項 3）。iCloud Keychain 同期対象外。
+
+### 6.3 (optional) E2E 検証手順（手動）
+Sim / 実機での目視検証手順。`scripts/build-test.sh` の自動テストではカバーされない経路を網羅。
+
+**準備**:
+1. `scripts/build-test.sh` で xcodegen → ビルド → 単体テスト緑（94 件）を確認。
+2. Xcode を開く: `open KeyNest.xcodeproj`、Scheme `KeyNest` で実機 / Sim を選んで Run。
+3. **拡張を有効化**: Sim/実機の `設定 ▸ 一般 ▸ パスワードを自動入力 ▸ パスワードとパスキーを自動入力`
+   で KeyNest をオン。
+
+**Password fill 経路**:
+1. アプリで `+` から credential を 1 件追加（例 `https://example.com` / `alice@example.com` / 任意 password）。
+2. Sim の Settings.app ▸ Passwords を開き、KeyNest 由来のエントリが OS に同期されていることを確認
+   （`CredentialIdentityStoreSync.replaceAll/upsert`）。
+3. Safari で `https://example.com`（ログインフォームがあるテスト用ページ）を開き、ユーザー名フィールドを
+   フォーカス → AutoFill バー / picker で KeyNest 候補が出ること。
+4. 候補タップ → `LAContext` プロンプト → 認証 → username/password が入力されること
+   （`prepareCredentialList(for:)` → `authenticateAndFill` → `ASPasswordCredential`）。
+5. 取消経路: 候補表示 → "Cancel" → エラーダイアログ無しに静かに閉じること（NFR 3.1）。
+
+**PassKey 経路 (iOS 17+)**:
+1. Safari で webauthn.io にアクセス。
+2. 新規登録 → passkey 作成を選ぶ → KeyNest の `PasskeyConfirmView` が出ること
+   （`prepareInterface(forPasskeyRegistration:)`）→ 認証 → 登録完了。
+3. 同サイトで再サインイン → passkey 認証 → `PasskeyConfirmView`（Sign in モード）→ 認証 → 完了
+   （`prepareCredentialList(for:requestParameters:)` → `PasskeyAssertionCoordinator`）。
+4. Vault 内 `passkeys` テーブルに 1 件が増えていること（host app に passkey 一覧 UI は無いため、
+   将来の Settings 拡張で目視。当面は console log / DB ダンプで確認）。
+
+**Danger Zone**:
+1. Settings ▸ Danger zone ▸ Clear vault → 認証 → 確認ダイアログ → `Delete everything` → "Vault cleared"。
+2. Sim Settings.app ▸ Passwords で KeyNest 由来のエントリが消えていること（`removeAll` 同期）。
+
+**App Switcher Privacy Shield**:
+1. Edit 画面で password を reveal 中にホームジェスチャ → App Switcher にスナップショットが映る瞬間に
+   KeyNest ロゴだけが見え、password 文字列が映らないこと。
+2. 復帰時に元の Edit 画面が即座に再描画されること（fade-in 150ms）。
+
+**Localization**:
+1. Sim の Settings ▸ General ▸ Language & Region で言語を 日本語 に切替 → 再起動。
+2. List / Edit / Settings / Danger / Onboarding の主要ラベル / ボタンが翻訳されていること。
+3. 翻訳が抜けている文字列があれば EN にフォールバックすること（クラッシュしない）。
+
+### Phase 6 完了サマリ
+- 6.1 EN/JA Localizable: 80+ keys / xcstrings 1 ファイル / project.yml 設定
+- 6.2 App switcher 保護 + SafeLog / Keychain 監査
+- 6.3 手動 E2E 手順を impl-notes に文書化
+- 既存 KeyNestKitTests 94 件は緑のまま維持
+
+## 完走
+- Phase 0〜6 全タスク完了。
+- 残るは Sim/実機での手動検証（6.3 の手順に従う）と App Store 配布手前の証明書 / Team ID 設定（仕様外）。
 - Phase 4（AutoFill 拡張 — パスワード: `ServiceIdentifierMatcher` / `CredentialIdentityStoreSync` /
   `CredentialProviderViewController`）。serviceIdentifier の正規化はここで実装（UseCase 側は現状 blank チェックのみ）。
 - Phase 5（AutoFill 拡張 — PassKey: 登録 / assertion coordinator。`PasskeyCreator` / `PasskeyAssertion` を

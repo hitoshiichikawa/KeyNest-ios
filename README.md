@@ -15,26 +15,34 @@ by the **Secure Enclave**, and unlocked via **Face ID / Touch ID** (passcode fal
 
 ## Status
 
-**Phases 0–3 complete — `KeyNestKitTests` green on Mac (80 tests pass).**
+**Phases 0–6 complete — `KeyNestKitTests` green on Mac (94 tests pass).**
 `KeyNestKit` carries the full platform-independent core: domain models + use cases (with
 async-stream DB observers), the GRDB vault + repositories, AES-256-GCM crypto with a
-Secure-Enclave envelope data key, `LAContext` biometrics, and the WebAuthn byte layer +
-P-256 passkey create / assert.
+Secure-Enclave envelope data key, `LAContext` biometrics, the WebAuthn byte layer +
+P-256 passkey create / assert, `ServiceIdentifierMatcher` for AutoFill targeting, and
+`CredentialIdentityStoreSync` for live OS reconciliation.
 
-The SwiftUI app shell now ships every Req 7.x screen: Onboarding (AutoFill enablement
-guide), Credential List (search / sort / recently-used / swipe), Credential Edit
+The SwiftUI app ships every Req 7.x screen — Onboarding (AutoFill enablement guide),
+Credential List (search / sort / recently-used / swipe), Credential Edit
 (biometric-gated unlock + custom fields + duplicate detection), Settings (autofill /
-lock / vault metadata / passkey status), OSS Licenses, and a Danger Zone with the
-strict biometric → confirm → ClearVault state machine. Manrope + JetBrains Mono ship
-bundled (OFL).
+lock / vault metadata / passkey status), OSS Licenses, Danger Zone (strict
+biometric → confirm → ClearVault). Manrope + JetBrains Mono ship bundled (OFL).
+The AutoFill extension is wired for both **passwords** (`prepareCredentialList`,
+biometric-gated UI fill) and **passkeys** (`prepareInterface(forPasskeyRegistration:)`,
+`prepareCredentialList(for:requestParameters:)` with RP-spoof check and
+`signWithIncrement`-atomic counter). EN/JA localization is staged via a single Xcode 15
+string catalog, and an App Switcher privacy shield masks the suspend-time snapshot.
 
 **Build:** `scripts/build-test.sh` regenerates the Xcode project via XcodeGen and runs
 `KeyNestKitTests`. Set `KEYNEST_DEVICE` to override the default simulator (e.g.
 `KEYNEST_DEVICE="iPhone 17"`).
 
-Remaining: Phases 4–5 AutoFill / PassKey extensions, Phase 6
-localization & hardening. Progress is tracked per-task in
-`docs/specs/1-ios-port-foundation/tasks.md`.
+**Manual verification:** `docs/specs/1-ios-port-foundation/impl-notes.md` →
+"6.3 (optional) E2E 検証手順" walks through Sim/device enablement, password fill,
+passkey register/assert, Danger Zone, App Switcher shield, and JA fallback.
+
+Remaining: real-device manual verification per the 6.3 checklist; App Store-bound
+signing (DEVELOPMENT_TEAM) is intentionally not in VCS.
 
 ## Build (macOS + Xcode required)
 

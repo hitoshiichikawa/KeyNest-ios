@@ -125,7 +125,8 @@
   - **Keychain ThisDeviceOnly**: `KeychainDataKeyStore`（`DataKeyProvider.swift`）で `kSecAttrAccessible = kSecAttrAccessibleWhenUnlockedThisDeviceOnly` ＋ `kSecAttrSynchronizable = false`。Secure Enclave KEK 側も `.privateKeyUsage` のみ＝iCloud 同期対象外（NFR 1.3）。
   - _Requirements: NFR 1.1, NFR 1.2, NFR 1.3_
   - _Boundary: KeyNest/UI_
-- [ ]* 6.3 結合/E2E テスト拡充（GRDB 実 DB CRUD、IdentityStore 同期、Safari 自動入力手動確認手順）
+- [x]* 6.3 結合/E2E テスト拡充（GRDB 実 DB CRUD、IdentityStore 同期、Safari 自動入力手動確認手順）
+  - `docs/specs/1-ios-port-foundation/impl-notes.md` の `### 6.3 (optional) E2E 検証手順` に Sim/実機での手動検証手順を文書化（拡張有効化 → password fill → passkey register/assert → Danger Zone → App Switcher 保護 → 言語切替）
   - _Requirements: 5.3, 6.3_
 
 ## 依存関係メモ
