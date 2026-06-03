@@ -34,7 +34,21 @@ struct KeyNestApp: App {
 
     private func bootstrap() async {
         do {
-            services = try ServiceLocator.makeShared()
+            let locator = try ServiceLocator.makeShared()
+            services = locator
+            // Reconcile the OS credential-identity store with the vault so
+            // the AutoFill UI never goes stale after an app launch (entries
+            // added by the autofill extension, manual edits between launches,
+            // etc.). best-effort: swallow errors.
+            Task.detached {
+                do {
+                    let snapshot = try await locator.credentialRepository.listAll(sort: .updatedDesc)
+                    await locator.identityStoreSync.replaceAll(with: snapshot)
+                } catch {
+                    // SafeLog at the framework level already logs sync errors;
+                    // a snapshot fetch failure here is non-fatal.
+                }
+            }
         } catch {
             startupError = error
         }

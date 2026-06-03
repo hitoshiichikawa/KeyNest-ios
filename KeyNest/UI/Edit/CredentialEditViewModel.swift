@@ -164,31 +164,50 @@ final class CredentialEditViewModel {
         defer { isSaving = false }
 
         do {
+            let sid = trim(serviceIdentifier)
+            let user = trim(username)
             switch mode {
             case .new:
                 let id = try await services.saveCredential(
                     NewCredentialInput(
-                        serviceIdentifier: trim(serviceIdentifier),
-                        username: trim(username),
+                        serviceIdentifier: sid,
+                        username: user,
                         password: Array(password.utf8),
                         label: trim(label),
                         customFields: cleanFields
                     )
+                )
+                await services.identityStoreSync.upsert(
+                    id: id, serviceIdentifier: sid, username: user
                 )
                 dismissTo = .saved(id)
             case .edit(let id):
                 let original = loadedPlaintext
                 let originalPassword = original.map { String(decoding: $0.password, as: UTF8.self) }
                 let newPassword: [UInt8]? = (originalPassword == password) ? nil : Array(password.utf8)
+                let originalServiceIdentifier = original?.serviceIdentifier
+                let originalUsername = original?.username
                 try await services.updateCredential(
                     UpdateCredentialInput(
                         id: id,
-                        serviceIdentifier: trim(serviceIdentifier),
-                        username: trim(username),
+                        serviceIdentifier: sid,
+                        username: user,
                         label: trim(label),
                         newPassword: newPassword,
                         customFields: cleanFields
                     )
+                )
+                // If the identifying tuple changed, drop the stale entry then
+                // upsert the new one so the OS can't surface both.
+                if let prevSid = originalServiceIdentifier,
+                   let prevUser = originalUsername,
+                   (prevSid != sid || prevUser != user) {
+                    await services.identityStoreSync.remove(
+                        id: id, serviceIdentifier: prevSid, username: prevUser
+                    )
+                }
+                await services.identityStoreSync.upsert(
+                    id: id, serviceIdentifier: sid, username: user
                 )
                 dismissTo = .saved(id)
             }
@@ -206,8 +225,13 @@ final class CredentialEditViewModel {
         let auth = await services.biometricAuthenticator
             .authenticate(reason: "Confirm deletion")
         guard case .succeeded = auth else { return }
+        let sid = trim(serviceIdentifier)
+        let user = trim(username)
         do {
             try await services.deleteCredential(id)
+            await services.identityStoreSync.remove(
+                id: id, serviceIdentifier: sid, username: user
+            )
             dismissTo = .deleted(id)
         } catch {
             saveError = "Delete failed (\(String(describing: type(of: error))))"
@@ -216,8 +240,13 @@ final class CredentialEditViewModel {
 
     func duplicate() async {
         guard case .edit(let id) = mode else { return }
+        let sid = trim(serviceIdentifier)
+        let user = trim(username)
         do {
             let newId = try await services.duplicateCredential(id)
+            await services.identityStoreSync.upsert(
+                id: newId, serviceIdentifier: sid, username: user
+            )
             dismissTo = .duplicated(newId)
         } catch {
             saveError = "Duplicate failed (\(String(describing: type(of: error))))"

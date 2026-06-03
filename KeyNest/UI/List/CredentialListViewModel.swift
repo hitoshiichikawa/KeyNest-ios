@@ -35,12 +35,16 @@ final class CredentialListViewModel {
     @ObservationIgnored private let recentUseCase: ObserveRecentlyUsedUseCase
     @ObservationIgnored private let duplicateUseCase: DuplicateCredentialUseCase
     @ObservationIgnored private let deleteUseCase: DeleteCredentialUseCase
+    @ObservationIgnored private let repository: CredentialRepository
+    @ObservationIgnored private let identityStoreSync: CredentialIdentityStoreSyncing
 
     init(services: ServiceLocator) {
         self.listUseCase = services.listCredentials
         self.recentUseCase = services.observeRecentlyUsed
         self.duplicateUseCase = services.duplicateCredential
         self.deleteUseCase = services.deleteCredential
+        self.repository = services.credentialRepository
+        self.identityStoreSync = services.identityStoreSync
     }
 
     // MARK: - Derived state
@@ -89,8 +93,16 @@ final class CredentialListViewModel {
     func onSortChanged(_ value: CredentialSortOrder) { sort = value }
 
     func duplicate(_ id: CredentialId) async {
+        let source = allCredentials.first { $0.id == id }
         do {
-            _ = try await duplicateUseCase(id)
+            let newId = try await duplicateUseCase(id)
+            if let source {
+                await identityStoreSync.upsert(
+                    id: newId,
+                    serviceIdentifier: source.serviceIdentifier,
+                    username: source.username
+                )
+            }
             actionMessage = ActionMessage(kind: .success, text: "Duplicated")
         } catch {
             actionMessage = ActionMessage(
@@ -101,8 +113,16 @@ final class CredentialListViewModel {
     }
 
     func delete(_ id: CredentialId) async {
+        let target = allCredentials.first { $0.id == id }
         do {
             try await deleteUseCase(id)
+            if let target {
+                await identityStoreSync.remove(
+                    id: id,
+                    serviceIdentifier: target.serviceIdentifier,
+                    username: target.username
+                )
+            }
         } catch {
             actionMessage = ActionMessage(
                 kind: .failure,

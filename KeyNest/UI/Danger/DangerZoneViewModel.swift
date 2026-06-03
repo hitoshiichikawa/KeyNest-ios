@@ -68,6 +68,7 @@ final class DangerZoneViewModel {
         phase = .clearing
         do {
             try await services.clearVault()
+            await services.identityStoreSync.removeAll()
             phase = .cleared
         } catch {
             phase = .failed(reason: String(describing: type(of: error)))

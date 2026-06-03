@@ -95,7 +95,8 @@
   - `KeyNestKit/AutoFill/ServiceIdentifierMatcher.swift`（`normalize(_:)`: trim → lowercase → scheme/userInfo/port/path/query/fragment 除去 → 末尾 `.` / 先頭 `www.` 除去、idempotent。`matches(stored:requested:)`: 正規化後の完全一致 ＆ 非空）。サブドメインは**意図的に厳密**（`m.example.com` ≠ `example.com`、look-alike spoof 回避）。`Tests/.../ServiceIdentifierMatcherTests.swift` 14 件（scheme/path/port/userInfo/末尾ドット/www/lowercase/空白/idempotency/サブドメイン/typosquat）
   - _Requirements: 5.1_
   - _Boundary: KeyNestKit/AutoFill_
-- [ ] 4.2 `CredentialIdentityStoreSync`（保存/更新/削除で `ASCredentialIdentityStore` 同期）
+- [x] 4.2 `CredentialIdentityStoreSync`（保存/更新/削除で `ASCredentialIdentityStore` 同期）
+  - `KeyNestKit/AutoFill/CredentialIdentityStoreSync.swift`（`actor`、protocol `CredentialIdentityStoreSyncing` ＋ `NoopCredentialIdentityStoreSync`）。`replaceAll` (snapshot reconcile)、`upsert`、`remove`、`removeAll`。`isEnabled` ガード（disabled なら IPC スキップ）、エラーは `SafeLog.warn` で握り潰す。`ServiceLocator` に配線、`makeShared()` 経路で本番 `ASCredentialIdentityStore.shared` を使用。`CredentialEditViewModel` / `CredentialListViewModel` / `DangerZoneViewModel` の各 CRUD 経路から同期、`KeyNestApp` 起動時に `replaceAll(with: listAll)` で reconcile
   - _Requirements: 5.2, 5.5_
 - [ ] 4.3 `CredentialProviderViewController`（`prepareCredentialList` / `provideCredentialWithoutUserInteraction` / UI 選択→生体→復号→`ASPasswordCredential`）
   - 一致なし・例外時の安全終了（cancelRequest）
