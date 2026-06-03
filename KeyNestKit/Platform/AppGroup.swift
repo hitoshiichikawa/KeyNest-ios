@@ -10,10 +10,29 @@ public enum AppGroup {
     /// extension see the same database file.
     public static let identifier = "group.io.github.hitoshiichikawa.ios.keynest"
 
-    /// Shared Keychain access group that holds the Secure-Enclave-wrapped data key.
-    /// At runtime the real prefix is the Team ID; Keychain queries use the bare
-    /// suffix when the entitlement lists `$(AppIdentifierPrefix)…`.
-    public static let keychainAccessGroup = "io.github.hitoshiichikawa.ios.keynest.shared"
+    /// Shared Keychain access group that holds the Secure-Enclave-wrapped data
+    /// key. iOS 17+ with a wildcard provisioning profile rejects the bare-suffix
+    /// form (`-34018 errSecMissingEntitlement`), so we assemble the team-prefixed
+    /// full form (`<TEAM_ID>.<suffix>`) from `KNTeamIdentifier` injected into
+    /// the host bundle's Info.plist via `$(DEVELOPMENT_TEAM)`. When the team
+    /// id is missing (Simulator without a signed entitlement, fresh checkout
+    /// without Local.xcconfig), returns nil so the caller omits the access
+    /// group attribute and falls back to the default app-local keychain.
+    public static var keychainAccessGroup: String? {
+        #if targetEnvironment(simulator)
+        // Simulator has no signed entitlements, so any access group attribute
+        // would 34018 the Keychain call. Fall back to the default app-local
+        // keychain (extension parity is lost on Sim — by design).
+        return nil
+        #else
+        let bareSuffix = "io.github.hitoshiichikawa.ios.keynest.shared"
+        guard let teamId = Bundle.main.object(forInfoDictionaryKey: "KNTeamIdentifier") as? String,
+              !teamId.isEmpty else {
+            return nil
+        }
+        return "\(teamId).\(bareSuffix)"
+        #endif
+    }
 
     /// SQLite database file name inside the shared container.
     public static let databaseFileName = "keynest.db"

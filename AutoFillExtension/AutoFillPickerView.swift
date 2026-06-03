@@ -17,14 +17,14 @@ struct AutoFillPickerView: View {
     var body: some View {
         NavigationStack {
             List {
-                if !suggestedServiceIdentifier.isEmpty {
-                    Section {
-                        Button(action: onSaveNew) {
-                            Label(
-                                "Save new for \(suggestedServiceIdentifier)",
-                                systemImage: "plus.circle.fill"
-                            )
-                        }
+                Section {
+                    Button(action: onSaveNew) {
+                        Label(
+                            suggestedServiceIdentifier.isEmpty
+                                ? "Save new credential"
+                                : "Save new for \(suggestedServiceIdentifier)",
+                            systemImage: "plus.circle.fill"
+                        )
                     }
                 }
                 if !matches.isEmpty {

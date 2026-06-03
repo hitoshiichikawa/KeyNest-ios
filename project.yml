@@ -14,6 +14,13 @@
 
 name: KeyNest
 
+# Per-developer build settings (DEVELOPMENT_TEAM). The file is git-ignored;
+# Local.xcconfig.example shows the shape. Generation fails fast if the file is
+# absent, which is intentional: device builds require a Team ID.
+configFiles:
+  Debug: Local.xcconfig
+  Release: Local.xcconfig
+
 options:
   bundleIdPrefix: io.github.hitoshiichikawa.ios.keynest
   deploymentTarget:

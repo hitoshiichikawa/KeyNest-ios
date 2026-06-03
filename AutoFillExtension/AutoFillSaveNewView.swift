@@ -132,7 +132,8 @@ struct AutoFillSaveNewView: View {
         } catch SaveCredentialError.labelBlank {
             error = "Label is required."
         } catch {
-            self.error = "Save failed (\(String(describing: type(of: error))))"
+            // Verbose detail to diagnose first-run device issues.
+            self.error = "Save failed: \(error)"
         }
     }
 }

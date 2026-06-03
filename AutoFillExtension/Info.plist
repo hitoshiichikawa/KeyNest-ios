@@ -6,6 +6,10 @@
 	<string>KeyNest AutoFill</string>
 	<key>CFBundleIdentifier</key>
 	<string>$(PRODUCT_BUNDLE_IDENTIFIER)</string>
+	<!-- Surfaces DEVELOPMENT_TEAM at runtime; AppGroup reads it to build the
+	     team-prefixed Keychain access group (iOS 17+ wildcard-profile fix). -->
+	<key>KNTeamIdentifier</key>
+	<string>$(DEVELOPMENT_TEAM)</string>
 	<key>CFBundleName</key>
 	<string>$(PRODUCT_NAME)</string>
 	<key>CFBundleExecutable</key>

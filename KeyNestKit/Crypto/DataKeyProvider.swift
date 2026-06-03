@@ -77,11 +77,10 @@ public final class DataKeyProvider: DataKeyProviding {
     }
 
     public static var defaultAccessGroup: String? {
-        #if targetEnvironment(simulator)
-        return nil
-        #else
-        return AppGroup.keychainAccessGroup
-        #endif
+        // AppGroup.keychainAccessGroup returns nil when DEVELOPMENT_TEAM is
+        // missing (e.g. Simulator without Local.xcconfig), so a single code
+        // path covers both Sim and device.
+        AppGroup.keychainAccessGroup
     }
 
     /// Test seam: inject a fake [DataKeyStore] and/or a deterministic byte
@@ -237,7 +236,6 @@ final class KeychainDataKeyStore: DataKeyStore {
             kSecClass as String: kSecClassGenericPassword,
             kSecAttrAccount as String: dekAccount,
             kSecAttrService as String: dekService,
-            kSecUseDataProtectionKeychain as String: true,
         ]
         if let accessGroup { q[kSecAttrAccessGroup as String] = accessGroup }
         return q
@@ -284,7 +282,6 @@ final class KeychainDataKeyStore: DataKeyStore {
             kSecAttrKeyType as String: kSecAttrKeyTypeECSECPrimeRandom,
             kSecAttrTokenID as String: kSecAttrTokenIDSecureEnclave,
             kSecAttrApplicationTag as String: kekTag,
-            kSecUseDataProtectionKeychain as String: true,
         ]
         if let accessGroup { q[kSecAttrAccessGroup as String] = accessGroup }
         return q
@@ -320,7 +317,6 @@ final class KeychainDataKeyStore: DataKeyStore {
             kSecAttrIsPermanent as String: true,
             kSecAttrApplicationTag as String: kekTag,
             kSecAttrAccessControl as String: access,
-            kSecUseDataProtectionKeychain as String: true,
         ]
         if let accessGroup { privateAttrs[kSecAttrAccessGroup as String] = accessGroup }
         let attributes: [String: Any] = [

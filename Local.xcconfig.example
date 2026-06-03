@@ -1,0 +1,4 @@
+// Copy to Local.xcconfig and fill in your real Team ID.
+// Local.xcconfig is .gitignore'd; this example file is the template.
+
+DEVELOPMENT_TEAM = ABCDE12345
