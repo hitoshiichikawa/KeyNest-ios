@@ -105,9 +105,11 @@
 
 ## Phase 5: AutoFill 拡張 — PassKey（iOS 17+）
 
-- [ ] 5.1 拡張 Info.plist の `ProvidesPasskeys` 能力宣言確認 ＋ passkey 登録 coordinator（`ASPasskeyRegistrationCredential` 返却）
+- [x] 5.1 拡張 Info.plist の `ProvidesPasskeys` 能力宣言確認 ＋ passkey 登録 coordinator（`ASPasskeyRegistrationCredential` 返却）
+  - `AutoFillExtension/PasskeyRegistrationCoordinator.swift`（iOS 17+、`PasskeyCreator.create` → `PasskeyRepository.save`、`SavePasskeyRequest.privateKey` を `var` 化して `resetBytes` 可能に＝NFR 1.1）。`CredentialProviderViewController.prepareInterface(forPasskeyRegistration:)` で `PasskeyConfirmView`（SwiftUI）→ 生体認証 → `extensionContext.completeRegistrationRequest(using:)`
   - _Requirements: 6.1, 6.2, 6.6_
-- [ ] 5.2 passkey assertion coordinator（OS の `clientDataHash` で署名・`signWithIncrement`・`ASPasskeyAssertionResponse`・RP スプーフィング検証）
+- [x] 5.2 passkey assertion coordinator（OS の `clientDataHash` で署名・`signWithIncrement`・`ASPasskeyAssertionCredential`・RP スプーフィング検証）
+  - `AutoFillExtension/PasskeyAssertionCoordinator.swift`: `allowedCredentialIDs` 指定時はそれを優先、無指定時は `listDiscoverableByRpId` で選択。**RP スプーフィング検証**（stored.rpId == request.relyingPartyIdentifier、不一致は generic failure）。`loadPrivateKey` を `signWithIncrement` のクロージャ外で先行解決し、`var keyBuffer` を `defer resetBytes` でゼロ消去。クロージャは `@Sendable` 用に `let snapshot` capture。`CredentialProviderViewController.prepareCredentialList(for:requestParameters:)` 経路、silent path は `userInteractionRequired` で UI 強制（Req 4.1）
   - _Requirements: 6.3, 6.5_
 
 ## Phase 6: ローカライズ・仕上げ・ハードニング

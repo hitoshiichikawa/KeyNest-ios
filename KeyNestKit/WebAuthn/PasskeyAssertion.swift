@@ -28,7 +28,7 @@ public struct PasskeyAssertionInput: Sendable {
 /// - [authenticatorData]: 37-byte `rpIdHash(32) ‖ flags(0x05) ‖ signCount(4 BE)`
 ///   (no attestedCredentialData, no extensions).
 /// - [signature]: ASN.1 **DER**-encoded ES256 signature (WebAuthn §6.3.3; iOS
-///   `ASPasskeyAssertionResponse` accepts DER).
+///   `ASPasskeyAssertionCredential` accepts DER).
 public struct PasskeyAssertionResult: Sendable, Equatable {
     public let authenticatorData: Data
     public let signature: Data

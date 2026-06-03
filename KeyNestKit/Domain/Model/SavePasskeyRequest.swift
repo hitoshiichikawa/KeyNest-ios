@@ -19,8 +19,10 @@ public struct SavePasskeyRequest: Sendable, Equatable {
     public let userDisplayName: String?
     public let isDiscoverable: Bool
     /// Plaintext private-key bytes (representation chosen by `PasskeyCreator`).
-    /// The repository AES-GCM encrypts this before persisting.
-    public let privateKey: Data
+    /// The repository AES-GCM encrypts this before persisting. Declared `var`
+    /// so the caller can `resetBytes` after `save` returns (NFR 1.1 wipe — the
+    /// repository does not wipe the caller's buffer).
+    public var privateKey: Data
     public let signCount: Int64
     public let displayName: String?
     public let createdAt: Int64

@@ -419,10 +419,56 @@ Flow 相当）は本フェーズでは入れない（スナップショットの
 - AutoFill 状態 disabled 時、`CredentialIdentityStoreSync` の `isEnabled` ガードが効いて IPC を
   スキップしていること（Console.app で SafeLog を確認）。
 
+## Phase 5 AutoFill (passkey) — 完了
+
+### 5.1 Registration coordinator
+- `AutoFillExtension/PasskeyRegistrationCoordinator.swift`（`@MainActor` + `@available(iOS 17, *)`）。
+  `PasskeyCreator.create` でバイト構築 → `PasskeyRepository.save` で encrypt-then-persist
+  （Req 6.6: `(rpId, userHandle)` 既存 → 上書きは repository 側）。
+- **`SavePasskeyRequest.privateKey` を `let` → `var` に変更**（NFR 1.1）。caller-wipe 契約だが
+  Swift では `let` だと `resetBytes` できない。docs にも理由を明記。
+- `CredentialProviderViewController.prepareInterface(forPasskeyRegistration:)`: `ASPasskeyCredentialRequest`
+  にキャスト → `PasskeyConfirmView`（SwiftUI、`UIHostingController` 上書き）→ 承認時に
+  `BiometricAuthenticating.authenticate` → 成功時に coordinator 起動 →
+  `extensionContext.completeRegistrationRequest(using: credential, completionHandler: nil)`。
+  失敗・取消は `cancelRequest(withError:)` で安全終了。
+
+### 5.2 Assertion coordinator
+- `AutoFillExtension/PasskeyAssertionCoordinator.swift`: 候補解決 + 署名の 2 段。
+  - **候補解決** (`pickCandidate`): `allowedCredentialIDs` 指定時は `Base64URL.encode(rawId)` で
+    `findByCredentialId` を順に試す。空なら `listDiscoverableByRpId` の MRU 1 件。
+  - **RP スプーフィング検証** (`signAssertion`): `passkey.rpId == request.relyingPartyIdentifier`。
+    一致しなければ `.rpMismatch` で **詳細を RP に返さず** generic failure 経路へ。
+  - **私鍵の解決順序**: `loadPrivateKey` は async、`signWithIncrement` のクロージャは
+    `@Sendable @escaping (Int64) throws -> T` で sync。よって私鍵をクロージャ外で先行解決し、
+    `let keySnapshot = keyBuffer` で `@Sendable` 互換の immutable capture を作って渡す。
+    元の `var keyBuffer` は `defer resetBytes` でゼロ消去（NFR 1.1）。
+  - 署名後 `ASPasskeyAssertionCredential(userHandle:relyingParty:signature:clientDataHash:authenticatorData:credentialID:)`
+    を返却。credentialID は `Base64URL.decode(passkey.credentialId)`。
+- `CredentialProviderViewController.prepareCredentialList(for:requestParameters:)` 経路で coordinator を駆動。
+  `ASPasskeyCredentialRequestParameters` の `relyingPartyIdentifier` / `clientDataHash` /
+  `allowedCredentials` / `userVerificationPreference` を取り出して使用。
+- iOS 17 unified API `provideCredentialWithoutUserInteraction(for: any ASCredentialRequest)` は
+  常に `.userInteractionRequired` を返却（Req 4.1: silent path で平文 / 秘密鍵を出さない）。
+- coordinator が UI を持たず ViewController 側で `PasskeyConfirmView` を出す分離設計。
+
+### API 名のはまりどころ
+- 公式 SDK 名は **`ASPasskeyAssertionCredential`**（私が当初 `ASPasskeyAssertionResponse` と書いて
+  ビルド失敗）。`completeAssertionRequest(using: credential, completionHandler:)` も `using` の型は
+  Credential。assertion 結果＝OS 配送用の "credential" という命名規則。
+- `completeRegistrationRequest` / `completeAssertionRequest` は async 化されているので、
+  `completionHandler: nil` の cb 形を明示するか `await` で呼ぶ。
+
+### 確認したい論点
+- discoverable 候補が複数ある rpId で、現状は MRU 1 件を auto-pick → confirm 表示。Apple の
+  純正 UI のように選択肢を出す形（List → 選択 → confirm）にしてもよい。phase 6 で UX 検討。
+- RP 不一致時は `.failed` 経路に流して generic 失敗にしているが、UI に細かい理由を出すかは
+  プライバシー方針次第。現状は generic。
+
 ## 次フェーズ
-- Phase 5（AutoFill — PassKey）。`ASCredentialProviderViewController` の iOS 17+ 経路
-  （`ASPasskeyCredentialRequest` 登録 / 認証）。既存 `PasskeyCreator` / `PasskeyAssertion` をそのまま
-  載せ、`ASPasskeyRegistrationCredential` / `ASPasskeyAssertionResponse` で OS に返す。
+- Phase 6（ローカライズ / ハードニング / E2E 検証）。EN/JA `Localizable`、`.privacySensitive` /
+  redact 監査、Keychain ThisDeviceOnly 検査、Safari ログインフォーム / passkey RP（例 webauthn.io）
+  での E2E 手順整備。
 - Phase 4（AutoFill 拡張 — パスワード: `ServiceIdentifierMatcher` / `CredentialIdentityStoreSync` /
   `CredentialProviderViewController`）。serviceIdentifier の正規化はここで実装（UseCase 側は現状 blank チェックのみ）。
 - Phase 5（AutoFill 拡張 — PassKey: 登録 / assertion coordinator。`PasskeyCreator` / `PasskeyAssertion` を
