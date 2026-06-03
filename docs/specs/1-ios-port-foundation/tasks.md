@@ -114,7 +114,8 @@
 
 ## Phase 6: ローカライズ・仕上げ・ハードニング
 
-- [ ] 6.1 Localizable（EN/JA）移植（KeyNest strings パリティ）(P)
+- [x] 6.1 Localizable（EN/JA）移植（KeyNest strings パリティ）(P)
+  - `KeyNest/Resources/Localizable.xcstrings`（Xcode 15+ JSON カタログ）。sourceLanguage=en、ja 翻訳を 80+ key 同梱（List / Edit / Settings / Onboarding / Danger / OSS / AutoFill picker / PassKey confirm）。`project.yml` に `developmentLanguage: en` ＋ `knownRegions: [en, ja]`。SwiftUI `Text("…")` リテラルは LocalizedStringKey として自動解決
   - _Requirements: 8.1_
   - _Boundary: KeyNestKit/Resources_
 - [ ] 6.2 センシティブ画面保護（`.privacySensitive` / スクショ時マスク）・redact ログ・Keychain ThisDeviceOnly 監査 (P)

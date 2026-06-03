@@ -1,0 +1,496 @@
+{
+  "sourceLanguage" : "en",
+  "version" : "1.0",
+  "strings" : {
+    "KeyNest" : {
+      "shouldTranslate" : false
+    },
+    "Settings" : {
+      "localizations" : {
+        "ja" : { "stringUnit" : { "state" : "translated", "value" : "設定" } }
+      }
+    },
+    "Cancel" : {
+      "localizations" : {
+        "ja" : { "stringUnit" : { "state" : "translated", "value" : "キャンセル" } }
+      }
+    },
+    "Save" : {
+      "localizations" : {
+        "ja" : { "stringUnit" : { "state" : "translated", "value" : "保存" } }
+      }
+    },
+    "Delete" : {
+      "localizations" : {
+        "ja" : { "stringUnit" : { "state" : "translated", "value" : "削除" } }
+      }
+    },
+    "Duplicate" : {
+      "localizations" : {
+        "ja" : { "stringUnit" : { "state" : "translated", "value" : "複製" } }
+      }
+    },
+    "Continue" : {
+      "localizations" : {
+        "ja" : { "stringUnit" : { "state" : "translated", "value" : "続ける" } }
+      }
+    },
+    "Skip for now" : {
+      "localizations" : {
+        "ja" : { "stringUnit" : { "state" : "translated", "value" : "あとで" } }
+      }
+    },
+    "Try again" : {
+      "localizations" : {
+        "ja" : { "stringUnit" : { "state" : "translated", "value" : "再試行" } }
+      }
+    },
+
+    "Search vault" : {
+      "localizations" : {
+        "ja" : { "stringUnit" : { "state" : "translated", "value" : "ボルトを検索" } }
+      }
+    },
+    "Recently used" : {
+      "localizations" : {
+        "ja" : { "stringUnit" : { "state" : "translated", "value" : "最近使用" } }
+      }
+    },
+    "Sort" : {
+      "localizations" : {
+        "ja" : { "stringUnit" : { "state" : "translated", "value" : "並び替え" } }
+      }
+    },
+    "Sort by" : {
+      "localizations" : {
+        "ja" : { "stringUnit" : { "state" : "translated", "value" : "並び替え" } }
+      }
+    },
+    "Updated (newest)" : {
+      "localizations" : {
+        "ja" : { "stringUnit" : { "state" : "translated", "value" : "更新日時順" } }
+      }
+    },
+    "Label (A→Z)" : {
+      "localizations" : {
+        "ja" : { "stringUnit" : { "state" : "translated", "value" : "ラベル順 (A→Z)" } }
+      }
+    },
+    "Domain (A→Z)" : {
+      "localizations" : {
+        "ja" : { "stringUnit" : { "state" : "translated", "value" : "ドメイン順 (A→Z)" } }
+      }
+    },
+    "Add credential" : {
+      "localizations" : {
+        "ja" : { "stringUnit" : { "state" : "translated", "value" : "資格情報を追加" } }
+      }
+    },
+    "Your vault is empty" : {
+      "localizations" : {
+        "ja" : { "stringUnit" : { "state" : "translated", "value" : "ボルトは空です" } }
+      }
+    },
+    "Saved credentials will appear here. Use the AutoFill flow or add one manually." : {
+      "localizations" : {
+        "ja" : { "stringUnit" : { "state" : "translated", "value" : "保存した資格情報がここに表示されます。自動入力から追加するか、手動で追加してください。" } }
+      }
+    },
+    "No matches" : {
+      "localizations" : {
+        "ja" : { "stringUnit" : { "state" : "translated", "value" : "該当なし" } }
+      }
+    },
+    "Try a different search term." : {
+      "localizations" : {
+        "ja" : { "stringUnit" : { "state" : "translated", "value" : "別のキーワードを試してください。" } }
+      }
+    },
+    "Duplicated" : {
+      "localizations" : {
+        "ja" : { "stringUnit" : { "state" : "translated", "value" : "複製しました" } }
+      }
+    },
+    "Delete credential?" : {
+      "localizations" : {
+        "ja" : { "stringUnit" : { "state" : "translated", "value" : "資格情報を削除しますか?" } }
+      }
+    },
+
+    "New credential" : {
+      "localizations" : {
+        "ja" : { "stringUnit" : { "state" : "translated", "value" : "新規資格情報" } }
+      }
+    },
+    "Edit credential" : {
+      "localizations" : {
+        "ja" : { "stringUnit" : { "state" : "translated", "value" : "資格情報を編集" } }
+      }
+    },
+    "Identity" : {
+      "localizations" : {
+        "ja" : { "stringUnit" : { "state" : "translated", "value" : "基本情報" } }
+      }
+    },
+    "Label" : {
+      "localizations" : {
+        "ja" : { "stringUnit" : { "state" : "translated", "value" : "ラベル" } }
+      }
+    },
+    "Service identifier" : {
+      "localizations" : {
+        "ja" : { "stringUnit" : { "state" : "translated", "value" : "サービス識別子" } }
+      }
+    },
+    "Username" : {
+      "localizations" : {
+        "ja" : { "stringUnit" : { "state" : "translated", "value" : "ユーザー名" } }
+      }
+    },
+    "Password" : {
+      "localizations" : {
+        "ja" : { "stringUnit" : { "state" : "translated", "value" : "パスワード" } }
+      }
+    },
+    "Required" : {
+      "localizations" : {
+        "ja" : { "stringUnit" : { "state" : "translated", "value" : "必須" } }
+      }
+    },
+    "Show password" : {
+      "localizations" : {
+        "ja" : { "stringUnit" : { "state" : "translated", "value" : "パスワードを表示" } }
+      }
+    },
+    "Hide password" : {
+      "localizations" : {
+        "ja" : { "stringUnit" : { "state" : "translated", "value" : "パスワードを非表示" } }
+      }
+    },
+    "Custom fields" : {
+      "localizations" : {
+        "ja" : { "stringUnit" : { "state" : "translated", "value" : "カスタムフィールド" } }
+      }
+    },
+    "Add custom field" : {
+      "localizations" : {
+        "ja" : { "stringUnit" : { "state" : "translated", "value" : "カスタムフィールドを追加" } }
+      }
+    },
+    "Remove custom field" : {
+      "localizations" : {
+        "ja" : { "stringUnit" : { "state" : "translated", "value" : "カスタムフィールドを削除" } }
+      }
+    },
+    "Key" : {
+      "localizations" : {
+        "ja" : { "stringUnit" : { "state" : "translated", "value" : "キー" } }
+      }
+    },
+    "Value" : {
+      "localizations" : {
+        "ja" : { "stringUnit" : { "state" : "translated", "value" : "値" } }
+      }
+    },
+    "Authenticating…" : {
+      "localizations" : {
+        "ja" : { "stringUnit" : { "state" : "translated", "value" : "認証中…" } }
+      }
+    },
+    "Unlocking credential…" : {
+      "localizations" : {
+        "ja" : { "stringUnit" : { "state" : "translated", "value" : "資格情報をアンロック中…" } }
+      }
+    },
+    "Authentication cancelled" : {
+      "localizations" : {
+        "ja" : { "stringUnit" : { "state" : "translated", "value" : "認証をキャンセルしました" } }
+      }
+    },
+    "Authentication failed" : {
+      "localizations" : {
+        "ja" : { "stringUnit" : { "state" : "translated", "value" : "認証に失敗しました" } }
+      }
+    },
+    "Unable to unlock" : {
+      "localizations" : {
+        "ja" : { "stringUnit" : { "state" : "translated", "value" : "アンロックできません" } }
+      }
+    },
+
+    "AutoFill" : {
+      "localizations" : {
+        "ja" : { "stringUnit" : { "state" : "translated", "value" : "自動入力" } }
+      }
+    },
+    "Security" : {
+      "localizations" : {
+        "ja" : { "stringUnit" : { "state" : "translated", "value" : "セキュリティ" } }
+      }
+    },
+    "Vault" : {
+      "localizations" : {
+        "ja" : { "stringUnit" : { "state" : "translated", "value" : "ボルト" } }
+      }
+    },
+    "About" : {
+      "localizations" : {
+        "ja" : { "stringUnit" : { "state" : "translated", "value" : "詳細" } }
+      }
+    },
+    "AutoFill provider" : {
+      "localizations" : {
+        "ja" : { "stringUnit" : { "state" : "translated", "value" : "自動入力プロバイダ" } }
+      }
+    },
+    "PassKey provider" : {
+      "localizations" : {
+        "ja" : { "stringUnit" : { "state" : "translated", "value" : "PassKey プロバイダ" } }
+      }
+    },
+    "Enabled" : {
+      "localizations" : {
+        "ja" : { "stringUnit" : { "state" : "translated", "value" : "有効" } }
+      }
+    },
+    "Disabled" : {
+      "localizations" : {
+        "ja" : { "stringUnit" : { "state" : "translated", "value" : "無効" } }
+      }
+    },
+    "Requires iOS 17" : {
+      "localizations" : {
+        "ja" : { "stringUnit" : { "state" : "translated", "value" : "iOS 17 以降が必要" } }
+      }
+    },
+    "Lock method" : {
+      "localizations" : {
+        "ja" : { "stringUnit" : { "state" : "translated", "value" : "ロック方式" } }
+      }
+    },
+    "Biometrics + passcode" : {
+      "localizations" : {
+        "ja" : { "stringUnit" : { "state" : "translated", "value" : "生体認証 + パスコード" } }
+      }
+    },
+    "Passcode only" : {
+      "localizations" : {
+        "ja" : { "stringUnit" : { "state" : "translated", "value" : "パスコードのみ" } }
+      }
+    },
+    "No lock set" : {
+      "localizations" : {
+        "ja" : { "stringUnit" : { "state" : "translated", "value" : "ロックなし" } }
+      }
+    },
+    "Credentials" : {
+      "localizations" : {
+        "ja" : { "stringUnit" : { "state" : "translated", "value" : "資格情報" } }
+      }
+    },
+    "Last updated" : {
+      "localizations" : {
+        "ja" : { "stringUnit" : { "state" : "translated", "value" : "最終更新" } }
+      }
+    },
+    "Storage" : {
+      "localizations" : {
+        "ja" : { "stringUnit" : { "state" : "translated", "value" : "ストレージ" } }
+      }
+    },
+    "Never" : {
+      "localizations" : {
+        "ja" : { "stringUnit" : { "state" : "translated", "value" : "なし" } }
+      }
+    },
+    "Open Settings" : {
+      "localizations" : {
+        "ja" : { "stringUnit" : { "state" : "translated", "value" : "設定を開く" } }
+      }
+    },
+    "Enable in Settings" : {
+      "localizations" : {
+        "ja" : { "stringUnit" : { "state" : "translated", "value" : "設定で有効化" } }
+      }
+    },
+    "Open Settings ▸ Passwords ▸ AutoFill Passwords & Passkeys, then enable KeyNest." : {
+      "localizations" : {
+        "ja" : { "stringUnit" : { "state" : "translated", "value" : "設定 ▸ パスワード ▸ パスワードとパスキーを自動入力 で KeyNest を有効にしてください。" } }
+      }
+    },
+    "Open-source licenses" : {
+      "localizations" : {
+        "ja" : { "stringUnit" : { "state" : "translated", "value" : "オープンソースライセンス" } }
+      }
+    },
+    "Open-Source Licenses" : {
+      "localizations" : {
+        "ja" : { "stringUnit" : { "state" : "translated", "value" : "オープンソースライセンス" } }
+      }
+    },
+    "View source" : {
+      "localizations" : {
+        "ja" : { "stringUnit" : { "state" : "translated", "value" : "ソースを表示" } }
+      }
+    },
+    "Danger zone" : {
+      "localizations" : {
+        "ja" : { "stringUnit" : { "state" : "translated", "value" : "危険な操作" } }
+      }
+    },
+    "Danger Zone" : {
+      "localizations" : {
+        "ja" : { "stringUnit" : { "state" : "translated", "value" : "危険な操作" } }
+      }
+    },
+    "Clearing the vault permanently removes every credential, passkey, and key." : {
+      "localizations" : {
+        "ja" : { "stringUnit" : { "state" : "translated", "value" : "ボルトを消去すると、すべての資格情報・パスキー・鍵が完全に削除されます。" } }
+      }
+    },
+    "Clear vault" : {
+      "localizations" : {
+        "ja" : { "stringUnit" : { "state" : "translated", "value" : "ボルトを消去" } }
+      }
+    },
+    "Permanently removes every credential, passkey, and the data-encryption key. This cannot be undone." : {
+      "localizations" : {
+        "ja" : { "stringUnit" : { "state" : "translated", "value" : "すべての資格情報・パスキー・データ暗号化鍵を完全に削除します。元に戻せません。" } }
+      }
+    },
+    "Clearing…" : {
+      "localizations" : {
+        "ja" : { "stringUnit" : { "state" : "translated", "value" : "消去中…" } }
+      }
+    },
+    "Vault cleared" : {
+      "localizations" : {
+        "ja" : { "stringUnit" : { "state" : "translated", "value" : "ボルトを消去しました" } }
+      }
+    },
+    "Add a new credential to start over." : {
+      "localizations" : {
+        "ja" : { "stringUnit" : { "state" : "translated", "value" : "新しい資格情報を追加してやり直してください。" } }
+      }
+    },
+    "Clear the entire vault?" : {
+      "localizations" : {
+        "ja" : { "stringUnit" : { "state" : "translated", "value" : "ボルト全体を消去しますか?" } }
+      }
+    },
+    "Delete everything" : {
+      "localizations" : {
+        "ja" : { "stringUnit" : { "state" : "translated", "value" : "すべて削除" } }
+      }
+    },
+    "All credentials, passkeys, and keys will be erased." : {
+      "localizations" : {
+        "ja" : { "stringUnit" : { "state" : "translated", "value" : "すべての資格情報・パスキー・鍵が削除されます。" } }
+      }
+    },
+
+    "Welcome to KeyNest" : {
+      "localizations" : {
+        "ja" : { "stringUnit" : { "state" : "translated", "value" : "KeyNest へようこそ" } }
+      }
+    },
+    "Offline-first password & passkey vault, encrypted on this device." : {
+      "localizations" : {
+        "ja" : { "stringUnit" : { "state" : "translated", "value" : "オフライン優先のパスワード・パスキー保管庫。すべての暗号化はこの端末で完結します。" } }
+      }
+    },
+    "AutoFill is enabled" : {
+      "localizations" : {
+        "ja" : { "stringUnit" : { "state" : "translated", "value" : "自動入力は有効です" } }
+      }
+    },
+    "AutoFill is not enabled" : {
+      "localizations" : {
+        "ja" : { "stringUnit" : { "state" : "translated", "value" : "自動入力は未有効です" } }
+      }
+    },
+    "KeyNest will fill credentials in Safari and apps." : {
+      "localizations" : {
+        "ja" : { "stringUnit" : { "state" : "translated", "value" : "KeyNest が Safari やアプリで資格情報を自動入力します。" } }
+      }
+    },
+    "Open Settings to add KeyNest as a provider." : {
+      "localizations" : {
+        "ja" : { "stringUnit" : { "state" : "translated", "value" : "設定を開き、KeyNest をプロバイダとして追加してください。" } }
+      }
+    },
+    "Open Settings ▸ General ▸ AutoFill & Passwords." : {
+      "localizations" : {
+        "ja" : { "stringUnit" : { "state" : "translated", "value" : "設定 ▸ 一般 ▸ パスワードを自動入力 を開く。" } }
+      }
+    },
+    "Tap AutoFill Passwords & Passkeys." : {
+      "localizations" : {
+        "ja" : { "stringUnit" : { "state" : "translated", "value" : "「パスワードとパスキーを自動入力」をタップ。" } }
+      }
+    },
+    "Enable KeyNest, then return here." : {
+      "localizations" : {
+        "ja" : { "stringUnit" : { "state" : "translated", "value" : "KeyNest を有効にしてからこの画面に戻ってください。" } }
+      }
+    },
+    "Available — passkeys can be created and used." : {
+      "localizations" : {
+        "ja" : { "stringUnit" : { "state" : "translated", "value" : "利用可能 — パスキーを作成・使用できます。" } }
+      }
+    },
+    "Will activate once AutoFill is enabled." : {
+      "localizations" : {
+        "ja" : { "stringUnit" : { "state" : "translated", "value" : "自動入力を有効化すると利用可能になります。" } }
+      }
+    },
+    "Requires iOS 17 or newer." : {
+      "localizations" : {
+        "ja" : { "stringUnit" : { "state" : "translated", "value" : "iOS 17 以降が必要です。" } }
+      }
+    },
+
+    "Unable to open vault" : {
+      "localizations" : {
+        "ja" : { "stringUnit" : { "state" : "translated", "value" : "ボルトを開けません" } }
+      }
+    },
+
+    "Suggested for this site" : {
+      "localizations" : {
+        "ja" : { "stringUnit" : { "state" : "translated", "value" : "このサイトの候補" } }
+      }
+    },
+    "All credentials" : {
+      "localizations" : {
+        "ja" : { "stringUnit" : { "state" : "translated", "value" : "すべての資格情報" } }
+      }
+    },
+    "Other credentials" : {
+      "localizations" : {
+        "ja" : { "stringUnit" : { "state" : "translated", "value" : "その他の資格情報" } }
+      }
+    },
+    "Your vault is empty. Add a credential in KeyNest, then try again." : {
+      "localizations" : {
+        "ja" : { "stringUnit" : { "state" : "translated", "value" : "ボルトは空です。KeyNest で資格情報を追加してから再試行してください。" } }
+      }
+    },
+
+    "Create a passkey?" : {
+      "localizations" : {
+        "ja" : { "stringUnit" : { "state" : "translated", "value" : "パスキーを作成しますか?" } }
+      }
+    },
+    "Sign in with passkey?" : {
+      "localizations" : {
+        "ja" : { "stringUnit" : { "state" : "translated", "value" : "パスキーでサインインしますか?" } }
+      }
+    },
+    "Create passkey" : {
+      "localizations" : {
+        "ja" : { "stringUnit" : { "state" : "translated", "value" : "パスキーを作成" } }
+      }
+    }
+  }
+}
