@@ -19,6 +19,7 @@ public final class ServiceLocator {
     public let biometricAuthenticator: BiometricAuthenticating
     public let vaultStorageMeasurer: VaultStorageMeasuring
     public let identityStoreSync: CredentialIdentityStoreSyncing
+    public let pasteboard: Pasteboarding
 
     // WebAuthn (Phase 2.5) — registration byte builder. Assertion signing is the
     // stateless `PasskeyAssertion` enum, used directly by the Phase 5 coordinator.
@@ -45,7 +46,8 @@ public final class ServiceLocator {
         biometricAuthenticator: BiometricAuthenticating = BiometricAuthenticator(),
         vaultStorageMeasurer: VaultStorageMeasuring = VaultStorageMeasurer(),
         passkeyCreator: PasskeyCreator = PasskeyCreator(),
-        identityStoreSync: CredentialIdentityStoreSyncing = CredentialIdentityStoreSync()
+        identityStoreSync: CredentialIdentityStoreSyncing = CredentialIdentityStoreSync(),
+        pasteboard: Pasteboarding = SystemPasteboard()
     ) {
         self.database = database
         self.dataKeyProvider = dataKeyProvider
@@ -53,6 +55,7 @@ public final class ServiceLocator {
         self.vaultStorageMeasurer = vaultStorageMeasurer
         self.passkeyCreator = passkeyCreator
         self.identityStoreSync = identityStoreSync
+        self.pasteboard = pasteboard
 
         // One DEK-backed cipher shared by passwords, custom fields and passkeys.
         let cipher = AesGcmCipher(keyProvider: { try dataKeyProvider.dataKey() })

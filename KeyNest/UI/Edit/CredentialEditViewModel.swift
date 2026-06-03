@@ -50,6 +50,7 @@ final class CredentialEditViewModel {
     var loadPhase: LoadPhase = .ready
     var isSaving: Bool = false
     var duplicateWarning: String?
+    var actionMessage: ActionMessage?
 
     /// Set to a non-nil id when the screen should pop back to the list (saved /
     /// deleted / duplicated). The view observes and dismisses.
@@ -142,6 +143,29 @@ final class CredentialEditViewModel {
     func removeCustomFieldRow(at index: Int) {
         guard customFields.indices.contains(index) else { return }
         customFields.remove(at: index)
+    }
+
+    // MARK: - Clipboard
+
+    func copyPassword() {
+        guard !password.isEmpty else { return }
+        CredentialClipboard.copySecret(password, to: services.pasteboard)
+        actionMessage = ActionMessage(kind: .success, text: "Password copied")
+    }
+
+    func copyUsername() {
+        let trimmed = trim(username)
+        guard !trimmed.isEmpty else { return }
+        CredentialClipboard.copyPlain(trimmed, to: services.pasteboard)
+        actionMessage = ActionMessage(kind: .success, text: "Username copied")
+    }
+
+    func copyCustomFieldValue(at index: Int) {
+        guard customFields.indices.contains(index) else { return }
+        let value = customFields[index].value
+        guard !value.isEmpty else { return }
+        CredentialClipboard.copySecret(value, to: services.pasteboard)
+        actionMessage = ActionMessage(kind: .success, text: "Value copied")
     }
 
     // MARK: - Save

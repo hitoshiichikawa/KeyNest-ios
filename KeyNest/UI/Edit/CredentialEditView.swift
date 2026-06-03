@@ -37,6 +37,9 @@ struct CredentialEditView: View {
             .onChange(of: viewModel.dismissTo) { _, target in
                 if target != nil { dismiss() }
             }
+            .alert(item: $viewModel.actionMessage) { msg in
+                Alert(title: Text(msg.text))
+            }
     }
 
     @ViewBuilder
@@ -70,17 +73,39 @@ struct CredentialEditView: View {
                     prompt: "example.com",
                     help: "Web domain (e.g. example.com). For apps, use the app's official website domain."
                 )
-                LabeledField(
-                    title: "Username",
-                    text: $viewModel.username,
-                    error: viewModel.fieldError?.field == .username ? "Required" : nil,
-                    autocapitalization: .never
-                )
-                PasswordField(
-                    text: $viewModel.password,
-                    visible: $viewModel.passwordVisible,
-                    error: viewModel.fieldError?.field == .password ? "Required" : nil
-                )
+                HStack {
+                    LabeledField(
+                        title: "Username",
+                        text: $viewModel.username,
+                        error: viewModel.fieldError?.field == .username ? "Required" : nil,
+                        autocapitalization: .never
+                    )
+                    if !viewModel.username.isEmpty {
+                        Button {
+                            viewModel.copyUsername()
+                        } label: {
+                            Image(systemName: "doc.on.doc")
+                        }
+                        .buttonStyle(.borderless)
+                        .accessibilityLabel("Copy username")
+                    }
+                }
+                HStack {
+                    PasswordField(
+                        text: $viewModel.password,
+                        visible: $viewModel.passwordVisible,
+                        error: viewModel.fieldError?.field == .password ? "Required" : nil
+                    )
+                    if !viewModel.password.isEmpty {
+                        Button {
+                            viewModel.copyPassword()
+                        } label: {
+                            Image(systemName: "doc.on.doc")
+                        }
+                        .buttonStyle(.borderless)
+                        .accessibilityLabel("Copy password")
+                    }
+                }
             }
             if let warning = viewModel.duplicateWarning {
                 Section {
@@ -91,9 +116,11 @@ struct CredentialEditView: View {
             }
             Section {
                 ForEach(Array(viewModel.customFields.enumerated()), id: \.element.id) { index, _ in
-                    CustomFieldRow(field: $viewModel.customFields[index]) {
-                        viewModel.removeCustomFieldRow(at: index)
-                    }
+                    CustomFieldRow(
+                        field: $viewModel.customFields[index],
+                        onCopy: { viewModel.copyCustomFieldValue(at: index) },
+                        onRemove: { viewModel.removeCustomFieldRow(at: index) }
+                    )
                 }
                 Button {
                     viewModel.addCustomFieldRow()
@@ -223,6 +250,7 @@ private struct PasswordField: View {
 
 private struct CustomFieldRow: View {
     @Binding var field: EditableCustomField
+    let onCopy: () -> Void
     let onRemove: () -> Void
 
     var body: some View {
@@ -235,6 +263,14 @@ private struct CustomFieldRow: View {
                 TextField("Value", text: $field.value)
                     .font(KNFont.body)
                     .autocorrectionDisabled()
+            }
+            if !field.value.isEmpty {
+                Button(action: onCopy) {
+                    Image(systemName: "doc.on.doc")
+                        .foregroundStyle(KNColor.text2)
+                }
+                .buttonStyle(.borderless)
+                .accessibilityLabel("Copy value")
             }
             Button(role: .destructive, action: onRemove) {
                 Image(systemName: "minus.circle.fill")
