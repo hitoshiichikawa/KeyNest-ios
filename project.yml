@@ -93,6 +93,10 @@ targets:
     platform: iOS
     sources:
       - path: AutoFillExtension
+      # Share the host app's string catalog so SwiftUI Text(...) inside the
+      # extension localizes the same way (extension bundle is separate).
+      - path: KeyNest/Resources/Localizable.xcstrings
+        buildPhase: resources
     dependencies:
       - target: KeyNestKit
         embed: false   # the host app embeds KeyNestKit; extension links it
