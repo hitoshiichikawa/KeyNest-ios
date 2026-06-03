@@ -332,9 +332,39 @@ Flow 相当）は本フェーズでは入れない（スナップショットの
 - Danger Zone の `.cleared` 後の遷移: 現状は同画面に「Vault cleared」表示のみ。List 画面へ
   pop する自動遷移にした方が UX 上明快かもしれない（要レビュー）。
 
-## 次フェーズ（本レビュー後）
-- Phase 3.6（Onboarding）。`PasskeyProviderStatus` 表示と AutoFill 有効化導線を最初の起動時に
-  出す。`@AppStorage` で 1 回完了フラグを保持。
+## Phase 3.6 Onboarding — 完了 ／ Phase 3 完走
+
+### 3.6 初回ガイダンス
+- `KeyNest/UI/Onboarding/OnboardingViewModel.swift`（`@MainActor` + `@Observable`）。
+  `ASCredentialIdentityStore.state()` を `.task` ＋ `scenePhase == .active` で再サンプル
+  （Android `onResume` 等価）。Settings.app への往復後に "AutoFill is enabled" カードが即時
+  反映される。
+- `OnboardingView.swift`: welcome ＋ AutoFill 状態カード ＋ 3 ステップガイド ＋
+  PassKey 状態カード ＋ footer の "Open Settings" deeplink。AutoFill 有効化を検知すると CTA が
+  "Continue" に切り替わり、未有効時は "Skip for now" で先送り可能（Req 7.5 のガイド責務であり
+  ブロックではない）。
+- **完了状態の永続化**: `KeyNestApp` 側 `@AppStorage("onboardingComplete")` を 1 回 true に立てる
+  だけ。`UserDefaults` (App Group ではない standard) を採用＝拡張からは見ず、本体アプリの初回
+  UX のみを制御。Danger Zone で vault clear しても再表示しない（onboarding はガイドであって
+  vault 状態と独立、Android 同方針）。
+
+### 確認したい論点
+- iOS 17 では PassKey provider 状態 = AutoFill ミラーで運用。Apple は passkey 個別 toggle API を
+  公開していないため、これが妥当な近似。
+
+## Phase 3 完了サマリ
+- 3.1 共通基盤（@main、Theme、Fonts、StrengthBar）
+- 3.2 Credential List（検索 / ソート / 最近使った / 空状態 / swipe）
+- 3.3 Credential Edit（new / edit、biometric ゲート、custom fields ≤ 10、重複検出）
+- 3.4 Settings（autofill / lock / vault metadata / passkey）
+- 3.5 Danger Zone（生体 → 確認 → ClearVault）＋ OSS Licenses
+- 3.6 Onboarding（AutoFill 有効化導線 + PassKey status）
+- 既存 KeyNestKitTests 80 件は緑のまま維持。UI フローは Sim/実機での目視確認が次の検証ステップ。
+
+## 次フェーズ
+- Phase 4（AutoFill 拡張 — パスワード）。`ServiceIdentifierMatcher` の正規化規則確定 →
+  Edit 画面の Domain Picker sheet を後追い装着 → `CredentialIdentityStoreSync` →
+  `CredentialProviderViewController`。
 - Phase 4（AutoFill 拡張 — パスワード: `ServiceIdentifierMatcher` / `CredentialIdentityStoreSync` /
   `CredentialProviderViewController`）。serviceIdentifier の正規化はここで実装（UseCase 側は現状 blank チェックのみ）。
 - Phase 5（AutoFill 拡張 — PassKey: 登録 / assertion coordinator。`PasskeyCreator` / `PasskeyAssertion` を

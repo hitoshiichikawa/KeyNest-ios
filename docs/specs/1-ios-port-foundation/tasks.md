@@ -85,7 +85,8 @@
 - [x] 3.5 Danger Zone（生体→確認ダイアログ→ClearVault、鍵削除）＋ OSS ライセンス画面
   - `KeyNest/UI/Danger/DangerZoneViewModel.swift`（strict state machine: idle→authenticating→confirming→clearing→cleared/failed、`clearing` は `confirming` からのみ到達可、`confirming` は `BiometricAuthenticating.authenticate` 成功からのみ到達可。`ClearVaultUseCase` は credentials＋passkeys＋DEK を削除）/ `DangerZoneView.swift`（Phase 別 statusLabel・footer、confirmationDialog 二段階）。`KeyNest/UI/Oss/OssEntry.swift`（Manrope/JetBrains Mono OFL、GRDB.swift MIT の static エントリ）/ `OssLicensesView.swift`（List + Link）。Settings の placeholder を本物 View に差し替え
   - _Requirements: 7.4_
-- [ ] 3.6 Onboarding（iOS の自動入力有効化導線、`PasskeyProviderStatus` 表示）
+- [x] 3.6 Onboarding（iOS の自動入力有効化導線、`PasskeyProviderStatus` 表示）
+  - `KeyNest/UI/Onboarding/OnboardingViewModel.swift`（`@MainActor` + `@Observable`、`ASCredentialIdentityStore.state()` を `.task` ＋ `scenePhase=.active` で再サンプル＝Android `onResume` 等価。PassKey 状態は `#available(iOS 17, *)` 判定）/ `OnboardingView.swift`（welcome、AutoFill 状態カード、3 ステップガイド、PassKey 状態カード、`UIApplication.openSettingsURLString` への deeplink ボタン、有効化検知で CTA が "Continue" に切替、未有効時は "Skip for now"）。`KeyNestApp` に `@AppStorage("onboardingComplete")` で初回判定し OnboardingView / RootView を切替
   - _Requirements: 7.5_
 
 ## Phase 4: AutoFill 拡張 — パスワード

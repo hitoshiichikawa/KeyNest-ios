@@ -12,11 +12,16 @@ import KeyNestKit
 struct KeyNestApp: App {
     @State private var services: ServiceLocator?
     @State private var startupError: Error?
+    @AppStorage("onboardingComplete") private var onboardingComplete: Bool = false
 
     var body: some Scene {
         WindowGroup {
             if let services {
-                RootView(services: services)
+                if onboardingComplete {
+                    RootView(services: services)
+                } else {
+                    OnboardingView(onContinue: { onboardingComplete = true })
+                }
             } else if let startupError {
                 StartupErrorView(error: startupError)
             } else {

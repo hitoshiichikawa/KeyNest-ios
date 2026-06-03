@@ -15,17 +15,24 @@ by the **Secure Enclave**, and unlocked via **Face ID / Touch ID** (passcode fal
 
 ## Status
 
-**Phases 0–2 complete (logic core) — generated on Linux, not yet compiled on a Mac.**
+**Phases 0–3 complete — `KeyNestKitTests` green on Mac (80 tests pass).**
 `KeyNestKit` carries the full platform-independent core: domain models + use cases (with
 async-stream DB observers), the GRDB vault + repositories, AES-256-GCM crypto with a
 Secure-Enclave envelope data key, `LAContext` biometrics, and the WebAuthn byte layer +
 P-256 passkey create / assert.
 
-**First step on macOS:** run `scripts/build-test.sh` to compile and run `KeyNestKitTests`,
-then fix any toolchain-specific issues (see
-`docs/specs/1-ios-port-foundation/impl-notes.md` → "Mac 検証項目").
+The SwiftUI app shell now ships every Req 7.x screen: Onboarding (AutoFill enablement
+guide), Credential List (search / sort / recently-used / swipe), Credential Edit
+(biometric-gated unlock + custom fields + duplicate detection), Settings (autofill /
+lock / vault metadata / passkey status), OSS Licenses, and a Danger Zone with the
+strict biometric → confirm → ClearVault state machine. Manrope + JetBrains Mono ship
+bundled (OFL).
 
-Remaining: Phase 3 SwiftUI UI, Phases 4–5 AutoFill / PassKey extensions, Phase 6
+**Build:** `scripts/build-test.sh` regenerates the Xcode project via XcodeGen and runs
+`KeyNestKitTests`. Set `KEYNEST_DEVICE` to override the default simulator (e.g.
+`KEYNEST_DEVICE="iPhone 17"`).
+
+Remaining: Phases 4–5 AutoFill / PassKey extensions, Phase 6
 localization & hardening. Progress is tracked per-task in
 `docs/specs/1-ios-port-foundation/tasks.md`.
 
