@@ -61,7 +61,8 @@ final class CredentialRepositoryTests: XCTestCase {
     func test_update_changesStoredFields() async throws {
         let repo = try makeRepo()
         let id = try await repo.save(sampleRecord(label: "Old"))
-        let original = try await XCTUnwrapAsync(repo.findById(id))
+        let originalOpt = try await repo.findById(id)
+        let original = try XCTUnwrap(originalOpt)
 
         let edited = EncryptedCredentialRecord(
             id: id,
@@ -155,12 +156,3 @@ final class CredentialRepositoryTests: XCTestCase {
     }
 }
 
-/// Async `XCTUnwrap` helper (XCTUnwrap itself is sync; this awaits then unwraps).
-func XCTUnwrapAsync<T>(
-    _ expression: @autoclosure () async throws -> T?,
-    file: StaticString = #filePath,
-    line: UInt = #line
-) async throws -> T {
-    let value = try await expression()
-    return try XCTUnwrap(value, file: file, line: line)
-}

@@ -50,6 +50,7 @@ targets:
         PRODUCT_BUNDLE_IDENTIFIER: io.github.hitoshiichikawa.ios.keynest.kit
         APPLICATION_EXTENSION_API_ONLY: YES   # framework is linked into an app extension
         DEFINES_MODULE: YES
+        GENERATE_INFOPLIST_FILE: YES
 
   # ---- Main app ----
   KeyNest:

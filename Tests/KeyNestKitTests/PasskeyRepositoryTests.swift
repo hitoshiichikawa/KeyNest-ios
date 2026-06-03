@@ -146,7 +146,8 @@ final class PasskeyRepositoryTests: XCTestCase {
 
         try await repo.delete(credentialId: "cred-1")
 
-        XCTAssertNil(try await repo.findByCredentialId("cred-1"))
+        let result = try await repo.findByCredentialId("cred-1")
+        XCTAssertNil(result)
     }
 
     func test_listDiscoverable_excludesNonDiscoverable() async throws {
