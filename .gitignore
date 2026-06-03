@@ -1,0 +1,30 @@
+# Xcode / XcodeGen — the project is generated from project.yml, never committed.
+*.xcodeproj/
+*.xcworkspace/
+!default.xcworkspace
+xcuserdata/
+DerivedData/
+build/
+*.xcuserstate
+
+# Swift Package Manager
+.build/
+.swiftpm/
+
+# Signing / secrets — never commit
+*.mobileprovision
+*.p12
+*.cer
+*.certSigningRequest
+Local.xcconfig
+*.local.xcconfig
+
+# Claude Code — local (personal) settings are not shared
+.claude/settings.local.json
+
+# macOS
+.DS_Store
+
+# CocoaPods / Carthage (unused, but guard against accidental adds)
+Pods/
+Carthage/Build/

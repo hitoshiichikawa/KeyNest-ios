@@ -1,0 +1,183 @@
+# Impl Notes — KeyNest iOS 移植（基盤フェーズ）
+
+> 環境制約: 本リポジトリは Linux のため **ソース生成のみ**。コンパイル / テスト実行は
+> Mac + Xcode（`xcodegen generate` 後）で行う。以下「Mac 検証項目」は実機/Sim での確認が必要。
+
+## Phase 1 暗号層（1.1〜1.3）— 完了（Mac 検証前）
+
+人間判断（2026-06-03）で、まず暗号層のみ確定し、GRDB データ層（1.4 / 1.5）と
+`ServiceLocator`（0.3 の残り）は本レビュー後に進める方針。reactive な観測 API（observe* /
+Flow 相当）は本フェーズでは入れない（スナップショットのみの方針）。
+
+### 1.1 `AesGcmCipher`
+- 実装はシード済み（`KeyNestKit/Crypto/AesGcmCipher.swift`）。本タスクで専用テスト
+  `Tests/KeyNestKitTests/AesGcmCipherTests.swift` を追加し、WebAuthn テストに同居していた
+  AES ケースをこちらへ移設（テストは対象コードの近傍に配置）。
+- レイアウト: `iv = 12B nonce` / `ciphertext = sealedBox.ciphertext ‖ 16B tag`（Android
+  `Cipher.doFinal` 出力と同一）。復号は末尾 16B を tag として分離。
+
+### 1.2 `DataKeyProvider`（Secure Enclave エンベロープ DEK）
+- Android `KeystoreKeyProvider`（鍵は TEE 内）の iOS 等価。iOS Secure Enclave は EC P-256
+  のみ（AES 不可）のため **エンベロープ方式**:
+  1. 256bit DEK を CSPRNG 生成
+  2. SE に非エクスポータブル P-256 KEK を生成（`kSecAttrTokenIDSecureEnclave`、access control
+     `[.privateKeyUsage]` のみ＝**生体フラグ無し**。確定事項 3 のアプリ層ゲート方針）
+  3. KEK 公開鍵で DEK を ECIES 封緘（`eciesEncryptionStandardX963SHA256AESGCM`）、封緘 blob のみを
+     共有 Keychain（`WhenUnlockedThisDeviceOnly` / `synchronizable=false`）へ保存
+  4. 復号は SE 内で DEK を開封。生 DEK はプロセスメモリ上の短命（使用後 `resetBytes` でゼロ消去）
+- **SE 非搭載 fallback**（Req 3.3）: DEK を直接 Keychain（`WhenUnlockedThisDeviceOnly`）へ保存。
+  暗号化はサイレント無効化しない。
+- **テスト容易性**: Keychain / SE 機構は `DataKeyStore` プロトコルへ分離（`KeychainDataKeyStore`
+  が実バックエンド）。鍵ライフサイクル（生成 / 読込 / キャッシュ / clearAll / レース時の
+  winner 採用 / 不正長検出）を in-memory fake で単体テスト（Android が `KeystoreKeyProvider` を
+  `open` にしてテスト差し替えしていたのと同等の意図）。
+- **初回起動レース**: app と extension が同時に DEK 生成→保存を試みた場合、`addSealedDataKey` は
+  **add-only**（重複時 `duplicateItem` を throw）。先勝ち側の鍵を **再読込して採用**し、後勝ち側で
+  上書きしない（既に暗号化済みデータの孤児化を防ぐ）。
+- `clearAll()`（Req 7.4 / Danger Zone）: 封緘 DEK と SE 鍵を削除し、メモリキャッシュも破棄。
+
+### 1.3 `EncryptedCustomFieldsCodec`
+- Android `EncryptedCustomFieldsCodec.kt`（Issue #66）の動作等価。`Cipher`（DEK 共通鍵）を再利用。
+- JSON 短縮キー `k` / `v`（`CustomFieldJson` は codec 内 private、`@SerialName` 相当の byte 形式パリティ）。
+- 空 ciphertext → 空リスト / JSON 破損 → 空リスト（fail-open）＋ redact 警告（`SafeLog`、生 JSON は
+  非ログ）。**GCM auth tag 失敗は非吞み込み**（`cipher.decrypt` は JSON の do/catch の外）で、
+  境界テストで固定。
+- 中間 UTF-8 / 復号バッファは `resetBytes` でゼロ消去（Android `Arrays.fill` 等価、NFR 1.1）。
+
+### 追加生成物
+- `KeyNestKit/Platform/SafeLog.swift`: `os.Logger` ベースの redact ロガー（Android `SafeLogger`
+  等価）。静的メッセージ＋エラー型名のみ出力、`localizedDescription` は出さない。
+
+## Phase 1 データ層（1.4 / 1.5）＋ 0.3 ServiceLocator — 完了（Mac 検証前）
+
+### 1.4 `AppDatabase`（GRDB）
+- `KeyNestKit/Data/Database/AppDatabase.swift`。App Group コンテナ上の `DatabasePool`（WAL、
+  `busyMode = .timeout(10)` でプロセス間書込競合を吸収）。
+- Room の v1〜v5 履歴は**単一 `v1` マイグレーションに畳む**（既存インストール無し）。`credentials` /
+  `passkeys` テーブルと indices（`idx_credentials_service`、`idx_passkeys_rp`、UNIQUE
+  `idx_passkeys_rp_user`）を作成。破壊的 fallback は無効（design 準拠）。
+- `passkeys` は Android の `keyAlias` 列を**持たない**（単一 DEK 方式、確定事項 2）。
+- 拡張がロック後に読めるよう DB ファイルへ `completeUntilFirstUserAuthentication` を best-effort 付与。
+- テストは in-memory `DatabaseQueue` 経由（`AppDatabase(_:)`）。
+
+### 1.5 Records ＋ Repositories
+- `KeyNestKit/Data/Record/{CredentialRecord,PasskeyRecord}.swift`（GRDB Codable、snake_case カラムは
+  `CodingKeys` で対応）。`PasskeyRecord` の `encrypted_private_key` / `private_key_iv` は `toDomain()` で
+  落とし、`Passkey` には載せない（Req 6.4）。
+- protocol（`KeyNestKit/Domain/Repository/{CredentialRepository,PasskeyRepository,RepositoryError}.swift`）と
+  実装（`KeyNestKit/Data/Repository/*Impl.swift`）。境界型 `EncryptedCredentialRecord` / `Passkey` /
+  `SavePasskeyRequest` は `Domain/Model/` に追加。
+- iOS 適応: `findByPackage` → `findByServiceIdentifier`、Kotlin `Flow` の observe* は本フェーズ非対象
+  （**スナップショットのみ**: `listAll(sort:)` / `findBy*`）、Kotlin `Result<>`/sealed failure → Swift
+  `throws`（`RepositoryError.notFound`）、async/await。
+- **暗号は DB トランザクション外**（save は encrypt 後に write、loadPrivateKey は fetch 後に decrypt）。
+  DB ロック内で crypto を回さない。
+- `signWithIncrement`（Req 6.5）: `writer.write { }` 内で `sign_count+1` →読み戻し→ `sign` クロージャ実行。
+  `sign` が throw すると GRDB がトランザクションを巻き戻し、カウンタも戻る（テストで固定）。
+- `save` の Req 6.6: 同一 `(rpId, userHandle)` の既存行を削除してから insert（上書き）。
+- 並行性: GRDB の write/read クロージャは `@Sendable`。self を捕捉しないよう `let writer = database.writer`
+  等を束縛し、Sendable な値型ローカルのみ捕捉。`Passkey` 等の境界型は struct（`Data` は値等価）で Sendable。
+
+### 0.3 `ServiceLocator`
+- `KeyNestKit/Platform/ServiceLocator.swift`。DB / DataKeyProvider / 単一 DEK cipher / CustomFields codec /
+  両 Repository を配線。`makeShared()` で App Group DB ＋ Keychain/SE データ鍵を構築。後続で Biometric /
+  UseCase / AutoFill 同期を追加。
+
+## Phase 2 ドメイン＋UseCase＋Biometric（2.1〜2.3）— 完了（Mac 検証前）
+
+人間判断: observe 系は **async stream**（GRDB `ValueObservation`→`AsyncThrowingStream`）、今回スコープは 2.1〜2.3
+（WebAuthn passkey 2.4/2.5 は次回）。
+
+### 2.1 ドメインモデル
+- 追加: `VaultMetadata`（count + latestUpdatedAt）、`DeviceLockStatus`（iOS LAContext 準拠 3 値。Android の
+  `UpdateRequired` は iOS 等価が無いため除外）、`PasskeyProviderStatus`（enabled/disabled/unsupported）。
+- 既存（シード / 1.5 境界型）と合わせて 2.1 のモデルは出揃い。
+
+### 2.2 UseCase（13 件）
+- `KeyNestKit/Domain/UseCase/*`。Android 各 UseCase の動作等価。iOS 差分:
+  - **署名解決（PackageSignatureResolver）を全廃**（iOS に署名照合が無い）。`packageName`→`serviceIdentifier`。
+  - **observe 系を async stream 化**: repo に `observeBySort` / `observeRecentlyUsed` / `observeMetadata`
+    （Credential）/ `observeAll`（Passkey）を追加し、`AppDatabase.observe(_:)` が `ValueObservation.values(in:)`
+    を `AsyncThrowingStream` へブリッジ（GRDB 型を境界に漏らさない）。`ListCredentials` / `ObserveRecentlyUsed`
+    / `ObserveVaultMetadata` / `ListPasskeys` がこれを forward。
+  - **`ClearVault`**: credentials＋passkeys＋DEK（`DataKeyProviding.clearAll`）を DB-first 順で削除（Req 7.4）。
+    Android の `detected_fields` は Non-Goal のため無し。passkey も削除する点が Android 版との差分。
+  - **`GetVaultStorageUsage`**: `VaultStorageMeasurer`（`keynest.db` ＋ `-wal` / `-shm` の合算、`FileManager`）。
+  - **`GetDeviceLockStatus`**: `BiometricAuthenticating.deviceLockStatus()`（LAContext）に委譲。
+  - 失敗系は Kotlin `Result<>`/sealed → Swift `throws`＋enum（`SaveCredentialError` / `UpdateCredentialError`
+    / `UnlockError` / `ClearVaultError`）。storage 系は GRDB エラーを伝播。
+- パスワード入力は `[UInt8]`。iOS の値型 COW ＋ `String` 不変性のため**呼び出し側のワイプは限定的**（best-effort で
+  作業バッファをゼロ消去）。確実にワイプできるのは出力の `PlaintextCredential`（class＋`[UInt8]`、`close()`）。
+- **確認事項（要レビュー）**: Android `UpdateCredentialUseCase` は編集時 `lastUsedAt` を null リセットする
+  （おそらく意図せず）。iOS は recently-used 整合のため `lastUsedAt` を**温存**。要否を人間判断。
+
+### 2.3 BiometricAuthenticator
+- `KeyNestKit/Crypto/BiometricAuthenticator.swift`。protocol `BiometricAuthenticating`（テスト/DI 用）＋
+  LAContext 実装。`authenticate(reason:) async -> AuthResult` / `availability()` / `deviceLockStatus()`。
+  `LAPolicy.deviceOwnerAuthentication`（生体＋パスコード fallback、Android `BIOMETRIC_STRONG|DEVICE_CREDENTIAL` 等価）。
+  操作毎に新規 `LAContext`（context はキャッシュするため使い回すと再認証が抑止される）。
+
+## Phase 2 WebAuthn バイト層＋passkey（2.4 / 2.5）— 完了（Mac 検証前）
+
+### 2.4 バイト層（検証）
+- シード済み `CborWriter` / `CoseKeyEncoder` / `AuthenticatorDataBuilder` / `AttestationObjectBuilder` /
+  `KeynestAaguid` を Android 実装と突き合わせ、**バイト一致を確認**:
+  - CBOR major type / 長さエンコーディング、COSE map 順（1,3,-1,-2,-3）、authData レイアウト、
+    attestation `fmt="none"` の map 順（fmt→attStmt→authData）すべて一致。
+  - **AAGUID のみ意図的に差分**: Android `2a56cf86-…` に対し iOS は新採番 `aae6363e-…`（design 確定事項1）。
+- `WebAuthnByteLayoutTests` に CBOR 長さ境界（inline≤23 / `0x18` / `0x58` / `0x59`）を追加。`Base64URL`
+  ヘルパ（url-safe / no-pad、Android `URL_SAFE|NO_PADDING` 相当）＋テストを追加。
+
+### 2.5 PasskeyCreator / PasskeyAssertion
+- iOS 差分（design §PassKey 表）:
+  - **鍵生成 = CryptoKit `P256.Signing.PrivateKey`**（JCE 不使用）。COSE は `publicKey.rawRepresentation`
+    （64B uncompressed x‖y）→ `CoseKeyEncoder.encodeEs256(rawXY:)`。
+  - **per-key Keystore alias / wrapping key を全廃**（確定事項2）。`PasskeyCreator` は純粋なバイトビルダで、
+    DB/Keychain に触れない。暗号化保存は単一 DEK の `PasskeyRepository.save`（Phase 1.5）が担当。
+  - 私鍵表現は `rawRepresentation`（32B スカラ）を `SavePasskeyRequest.privateKey` に格納。assertion 側は
+    `loadPrivateKey` で取得 → `P256.Signing.PrivateKey(rawRepresentation:)` で復元。
+  - **assertion は OS 提供の `clientDataHash` で署名**（clientDataJSON を自作しない）。署名対象
+    `authenticatorData ‖ clientDataHash` を CryptoKit `signature(for:)`（内部 SHA-256→ECDSA、ES256 等価）
+    に渡し、`derRepresentation`（ASN.1 DER）を返す（iOS `ASPasskeyAssertionResponse` は DER 受領）。
+  - 登録 JSON（`registrationResponseJson`）は不要（iOS は `ASPasskeyRegistrationCredential`＝attestationObject
+    ＋OS clientDataHash。Phase 5 coordinator で組む）。
+- 署名は ECDSA の乱数 nonce のため非決定的 → テストは**署名の検証可能性**を確認（exact bytes は固定しない）。
+  登録バイト（AAGUID/flags 0x45/COSE 配置/attestation framing）と authData(37B, flags 0x05) は固定。
+- `ServiceLocator.passkeyCreator` を配線（assertion は stateless enum `PasskeyAssertion` を直接利用）。
+
+## Mac 検証項目（実機/Sim で確認）
+
+1. `xcodegen generate` → KeyNestKit / KeyNestKitTests のコンパイル通過（GRDB 6.29 SPM 解決）。
+2. テスト green:
+   - Phase 1: `AesGcmCipherTests` / `EncryptedCustomFieldsCodecTests` / `DataKeyProviderTests` /
+     `AppDatabaseTests` / `CredentialRepositoryTests` / `PasskeyRepositoryTests`。
+   - Phase 2: `SaveUpdateCredentialUseCaseTests` / `UnlockVaultUseCaseTests` / `ClearVaultUseCaseTests` /
+     `CredentialObservationUseCaseTests` / `GetDeviceLockStatusUseCaseTests` / `VaultStorageMeasurerTests`。
+   - Phase 2.4/2.5: `WebAuthnByteLayoutTests`（CBOR/COSE/authData/attestation）/ `Base64URLTests` /
+     `PasskeyCreatorTests` / `PasskeyAssertionTests`。
+3. **実機**: `KeychainDataKeyStore` の SE 鍵生成・ECIES seal/open（Sim は
+   `SecureEnclave.isAvailable == false` で fallback 経路を通る）。`BiometricAuthenticator` の LAContext 評価も実機。
+4. Keychain access group 共有（app ↔ extension で同一封緘 DEK を読めること）— 両ターゲットの
+   entitlements 配線後に確認。
+5. CryptoKit / Security / os / GRDB / LocalAuthentication は `APPLICATION_EXTENSION_API_ONLY = YES` 下で利用可。
+6. **GRDB API バージョン確認**（6.29 想定で記述。差異あれば調整）: `TableDefinition.primaryKey(_:_:)` /
+   `Database.create(index:on:columns:options:)`（`IndexOptions.unique`）/ `any DatabaseWriter` 上の
+   async `read`/`write` / `MutablePersistableRecord.didInsert(_:)`（`InsertionSuccess.rowID`）/
+   `ValueObservation.tracking(_:)` ＋ `values(in:)`（async stream ブリッジ）。
+7. WAL × App Group のプロセス間共有（アプリ suspend 中ロック保持時の `0xDEAD10CC` 回避は後続フェーズで
+   必要なら GRDB の suspension 連携を配線）。
+8. observe 系テストは ValueObservation の初回 emission をスケジューラ（既定 main queue）経由で受ける。Mac で
+   ハングしないこと（`.values(in:)` の scheduling 既定で問題なければ可）。
+9. CryptoKit P256: `P256.Signing.PrivateKey().rawRepresentation`(32B) / `publicKey.rawRepresentation`(64B) /
+   `signature(for:)`→`derRepresentation` / `ECDSASignature(derRepresentation:)` / `isValidSignature(_:for:)`。
+   実 RP（例 webauthn.io）での登録/認証は Phase 5 の拡張 coordinator 完成後に手動確認。
+
+## 次フェーズ（本レビュー後）
+- Phase 3（SwiftUI UI / HIG）。observe 系 async stream を `@Observable` ViewModel の `.task` で消費。
+- Phase 4（AutoFill 拡張 — パスワード: `ServiceIdentifierMatcher` / `CredentialIdentityStoreSync` /
+  `CredentialProviderViewController`）。serviceIdentifier の正規化はここで実装（UseCase 側は現状 blank チェックのみ）。
+- Phase 5（AutoFill 拡張 — PassKey: 登録 / assertion coordinator。`PasskeyCreator` / `PasskeyAssertion` を
+  `ASCredentialProviderViewController` 経路に載せる）。
+
+## Feature Flag
+- 本リポジトリは Feature Flag Protocol = **opt-out**。active flag は無し。

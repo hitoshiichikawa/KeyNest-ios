@@ -1,0 +1,32 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0">
+<dict>
+	<!-- Lets the app act as an AutoFill credential provider (parity with KeyNest's
+	     BIND_AUTOFILL_SERVICE / BIND_CREDENTIAL_PROVIDER_SERVICE). -->
+	<key>com.apple.developer.authentication-services.autofill-credential-provider</key>
+	<true/>
+
+	<!-- Shared container so the app and the AutoFill extension read the same SQLite vault.
+	     Replace with your real App Group. -->
+	<key>com.apple.security.application-groups</key>
+	<array>
+		<string>group.io.github.hitoshiichikawa.ios.keynest</string>
+	</array>
+
+	<!-- Shared Keychain group so both targets reach the Secure-Enclave-wrapped data key.
+	     $(AppIdentifierPrefix) is your Team ID prefix, injected at build time. -->
+	<key>keychain-access-groups</key>
+	<array>
+		<string>$(AppIdentifierPrefix)io.github.hitoshiichikawa.ios.keynest.shared</string>
+	</array>
+
+	<!-- OPTIONAL: only needed if KeyNest itself owns a web domain for first-party
+	     passkeys / shared web credentials. NOT required to serve other RPs' passkeys.
+	<key>com.apple.developer.associated-domains</key>
+	<array>
+		<string>webcredentials:keynest.example.com</string>
+	</array>
+	-->
+</dict>
+</plist>
