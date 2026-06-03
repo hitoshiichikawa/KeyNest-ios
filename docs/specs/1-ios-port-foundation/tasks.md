@@ -75,7 +75,9 @@
 - [x] 3.2 Credential List（検索 `.searchable`・ソート `Menu`・最近使った・空状態 initial/no-match・複製/削除）
   - `KeyNest/UI/List/CredentialListViewModel.swift`（`@Observable` / `@MainActor`、`ListCredentialsUseCase` / `ObserveRecentlyUsedUseCase` を `for try await` で消費。sort 変更は View の `.task(id:)` で再購読＝Kotlin `flatMapLatest` 等価）/ `CredentialListView.swift`（`.searchable`、ソート `Menu`（updated/label/domain）、Recently used 水平カルーセル、空状態 initial/no-match、leading swipe で複製・trailing swipe で `confirmationDialog` 削除）。署名フィルタ／PassKey 行は v1 スコープ外
   - _Requirements: 7.1_
-- [ ] 3.3 Credential Edit（label/username/password/target-domain/custom fields≤10/advanced・複製・削除・重複検出）＋ Domain Picker sheet
+- [x] 3.3 Credential Edit（label/username/password/target-domain/custom fields≤10/advanced・複製・削除・重複検出）
+  - `KeyNest/UI/Edit/CredentialEditViewModel.swift`（new / edit モード、edit ロード時に `BiometricAuthenticating.authenticate` → `UnlockVaultUseCase` で復号、`PlaintextCredential` 保持・deinit で wipe、`UpdateCredentialUseCase` は password 未変更時 ciphertext 温存）/ `CredentialEditView.swift`（生体プロンプト中ローダ、cancel/failed 時 Retry View、reveal toggle で `SecureField`/`TextField` 切替、custom fields≤10、Save/Delete/Duplicate、destructive は `confirmationDialog`、`.privacySensitive()`）/ `CredentialListView` から `+` 新規導線と row tap の編集遷移を配線。重複検出は serviceIdentifier+username の 250ms debounce 背景 lookup で **non-blocking 警告**（Android パリティ）
+  - Domain Picker sheet は Phase 4 の `ServiceIdentifierMatcher` と一緒に追加（現状は URL TextField 直接入力）
   - _Requirements: 7.2, 5.1_
 - [ ] 3.4 Settings（autofill 状態・ロック方式・Vault メタデータ・passkey provider 状態・OSS・danger 入口）
   - _Requirements: 7.3_

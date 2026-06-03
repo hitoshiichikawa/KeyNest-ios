@@ -222,10 +222,56 @@ Flow 相当）は本フェーズでは入れない（スナップショットの
 - 複製ボタンは leading swipe（青）／削除は trailing（赤）。iOS では trailing destructive がHIG。
   Android の long-press メニュー UI は採用せず、HIG 寄せ。
 
+## Phase 3.3 Credential Edit — 完了
+
+### 3.3 編集画面
+- `KeyNest/UI/Edit/CredentialEditViewModel.swift`（`@MainActor` + `@Observable`）。`Mode` で
+  new/edit を分岐:
+  - **new**: `loadIfNeeded()` は no-op、空フォームで Save → `SaveCredentialUseCase`。
+  - **edit**: `loadIfNeeded()` で `BiometricAuthenticating.authenticate` → 成功時のみ
+    `UnlockVaultUseCase` で復号 → `PlaintextCredential` をフィールドへ写経。
+    cancelled / failed / unavailable は `LoadPhase` 経由で View にリトライ CTA を出す（Req 4.2:
+    平文を sealed のままで戻す）。
+  - 保存は `UpdateCredentialUseCase`。**password 文字列が編集前と同一なら `newPassword: nil`**
+    で渡して既存 ciphertext/IV を温存（"edit metadata only" 時に decrypt/re-encrypt を回避）。
+- **`PlaintextCredential` の寿命**: `loadedPlaintext` を `@ObservationIgnored` で保持し、ViewModel
+  破棄時 ARC で `deinit` → `close()` がバッファをゼロ消去。新しい平文ロード時は古い側を
+  `close()` してから差し替え（NFR 1.1 / Req 4.3）。
+- **重複検出**: `serviceIdentifier` / `username` 変更時に 250 ms debounce で背景 lookup
+  （`repository.findByServiceIdentifier(...)` → username の case-insensitive 一致を `edit` 時は
+  自身を除外）。検出は **保存をブロックせず** 警告バナーのみ（Android パリティ）。
+- **カスタムフィールド**: `EditableCustomField`（`UUID` Identifiable）配列で 1〜10 を View 側で
+  クランプ。`Add custom field` は `canAddCustomField` で `disabled`。Save 時 trim 空行を除去。
+- **削除**: `BiometricAuthenticating.authenticate` ＋ `confirmationDialog` の二段階（Req 4.1 destructive
+  vault action）。
+- **複製**: edit モードでのみ実行、結果の新 id を `dismissTo` に書いて List に戻す。`Duplicate`
+  use case は ciphertext 温存なので生体プロンプト不要。
+
+### View / 統合
+- `KeyNest/UI/Edit/CredentialEditView.swift`: `Form` ベース、Sections = Identity / 警告 / Custom
+  fields / Actions / Error。パスワードは `SecureField` / `TextField` を `passwordVisible` で
+  切替（reveal は **既に生体認証済の状態でのみ可能**＝Req 4.1 を画面遷移時にゲート）。
+  `.privacySensitive()` を password / custom field 行に付け、スイッチャ / スクショ時のリダクション
+  に乗せる（Req NFR 1.2 の先取り）。LoadPhase で `LoadingView` / `LoadRetryView` を出し分け。
+- `CredentialListView` を更新: toolbar に `+` の `NavigationLink → CredentialEditView(mode: .new)`、
+  行は `NavigationLink → CredentialEditView(mode: .edit(id))` でラップ。スワイプ複製/削除は維持。
+
+### Domain Picker は Phase 4 へ持ち越し
+- Android `PackagePickerBottomSheet` の iOS 等価は **「過去 serviceIdentifier 候補リスト」 sheet**
+  を想定しているが、正規化 `ServiceIdentifierMatcher`（Phase 4.1）が無いと候補抽出仕様が定まらない
+  ため意図的に持ち越し。3.3 では URL TextField 直接入力で運用可。
+
+### 確認したい論点
+- パスワード reveal はロード時の生体認証 1 回で permitted する設計。reveal 毎に再認証する方が
+  安全という考え方もある（Android はアプリ層ゲートで初回のみ）。要レビュー。
+- 重複検出を非ブロッキング警告にした点（Android パリティ）。Save 経路で hard block する選択肢もある。
+- Custom fields の key/value 順を保つために `UUID` を Identifiable に使った。Save 時は順序維持。
+
 ## 次フェーズ（本レビュー後）
-- Phase 3.3（Credential Edit）。`SaveCredentialUseCase` / `UpdateCredentialUseCase` を `.task` で
-  await。Domain Picker は `.sheet`、カスタムフィールド ≤ 10 制約を View 側でクランプ。重複検出は
-  既存 use case にエラー型として無いため Save 経路に追加するか View 側で事前 lookup するか要判断。
+- Phase 3.4（Settings）。`ObserveVaultMetadataUseCase` / `GetVaultStorageUsageUseCase` /
+  `GetDeviceLockStatusUseCase` を `@Observable` ViewModel で消費。AutoFill 有効状態は iOS の
+  `ASCredentialIdentityStore.state(...)`、PassKey provider 状態は `ASSettingsHelper` 系 API か
+  `passkey` capability の Info.plist 宣言からの推定。OSS 入口と Danger Zone 入口を配線。
 - Phase 4（AutoFill 拡張 — パスワード: `ServiceIdentifierMatcher` / `CredentialIdentityStoreSync` /
   `CredentialProviderViewController`）。serviceIdentifier の正規化はここで実装（UseCase 側は現状 blank チェックのみ）。
 - Phase 5（AutoFill 拡張 — PassKey: 登録 / assertion coordinator。`PasskeyCreator` / `PasskeyAssertion` を

@@ -13,8 +13,10 @@ import KeyNestKit
 struct CredentialListView: View {
     @State private var viewModel: CredentialListViewModel
     @State private var pendingDelete: Credential?
+    private let services: ServiceLocator
 
     init(services: ServiceLocator) {
+        self.services = services
         _viewModel = State(initialValue: CredentialListViewModel(services: services))
     }
 
@@ -72,7 +74,11 @@ struct CredentialListView: View {
                 }
                 Section {
                     ForEach(viewModel.filteredList) { credential in
-                        CredentialRow(credential: credential)
+                        NavigationLink {
+                            CredentialEditView(mode: .edit(credential.id), services: services)
+                        } label: {
+                            CredentialRow(credential: credential)
+                        }
                             .swipeActions(edge: .leading, allowsFullSwipe: false) {
                                 Button {
                                     Task { await viewModel.duplicate(credential.id) }
@@ -117,6 +123,14 @@ struct CredentialListView: View {
                 Image(systemName: "arrow.up.arrow.down")
             }
             .accessibilityLabel("Sort")
+        }
+        ToolbarItem(placement: .topBarTrailing) {
+            NavigationLink {
+                CredentialEditView(mode: .new, services: services)
+            } label: {
+                Image(systemName: "plus")
+            }
+            .accessibilityLabel("Add credential")
         }
     }
 }
