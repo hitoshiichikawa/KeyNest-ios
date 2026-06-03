@@ -91,7 +91,8 @@
 
 ## Phase 4: AutoFill 拡張 — パスワード
 
-- [ ] 4.1 `ServiceIdentifierMatcher`（URL/ドメイン正規化: scheme/path/大小/www 除去）＋ 境界値テスト (P)
+- [x] 4.1 `ServiceIdentifierMatcher`（URL/ドメイン正規化: scheme/path/大小/www 除去）＋ 境界値テスト (P)
+  - `KeyNestKit/AutoFill/ServiceIdentifierMatcher.swift`（`normalize(_:)`: trim → lowercase → scheme/userInfo/port/path/query/fragment 除去 → 末尾 `.` / 先頭 `www.` 除去、idempotent。`matches(stored:requested:)`: 正規化後の完全一致 ＆ 非空）。サブドメインは**意図的に厳密**（`m.example.com` ≠ `example.com`、look-alike spoof 回避）。`Tests/.../ServiceIdentifierMatcherTests.swift` 14 件（scheme/path/port/userInfo/末尾ドット/www/lowercase/空白/idempotency/サブドメイン/typosquat）
   - _Requirements: 5.1_
   - _Boundary: KeyNestKit/AutoFill_
 - [ ] 4.2 `CredentialIdentityStoreSync`（保存/更新/削除で `ASCredentialIdentityStore` 同期）
