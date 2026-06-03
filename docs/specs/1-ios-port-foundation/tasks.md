@@ -69,7 +69,8 @@
 
 ## Phase 3: メインアプリ UI（SwiftUI / HIG）
 
-- [ ] 3.1 共通基盤: `KeyNestApp`(@main), `NavigationStack` ルート, カラーアセット / フォント登録, `StrengthBar` 等 Components
+- [x] 3.1 共通基盤: `KeyNestApp`(@main), `NavigationStack` ルート, カラーアセット / フォント登録, `StrengthBar` 等 Components
+  - `KeyNest/KeyNestApp.swift`（`ServiceLocator.makeShared()` を `.task` で起動 → `RootView` / 失敗時 `StartupErrorView`）、`KeyNest/UI/Root/RootView.swift`（`NavigationStack` ＋ Settings 遷移の placeholder）。テーマは `KeyNest/UI/Theme/{KNColor,KNFont}.swift`（Android `colors.xml` / `values-night` を `UIColor(dynamicProvider:)` で 1 ファイル化、Manrope/JetBrains Mono は `KeyNest/Resources/Fonts/*.ttf` ＋ `Info.plist` `UIAppFonts`）。`KeyNest/UI/Components/StrengthBar.swift`（3 セグメント 14×4 pt / gap 2 pt、weak/medium/strong で塗り分け）
   - _Requirements: 8.2, 8.3_
 - [ ] 3.2 Credential List（検索 `.searchable`・ソート `Menu`・最近使った・空状態 initial/no-match・複製/削除）
   - _Requirements: 7.1_

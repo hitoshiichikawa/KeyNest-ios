@@ -172,8 +172,32 @@ Flow 相当）は本フェーズでは入れない（スナップショットの
    `signature(for:)`→`derRepresentation` / `ECDSASignature(derRepresentation:)` / `isValidSignature(_:for:)`。
    実 RP（例 webauthn.io）での登録/認証は Phase 5 の拡張 coordinator 完成後に手動確認。
 
+## Phase 3.1 SwiftUI 基盤 — 完了
+
+### 3.1 共通基盤
+- `KeyNest/KeyNestApp.swift`（`@main`）。`ServiceLocator.makeShared()` を `WindowGroup` 下の `.task`
+  で起動し、成功時 `RootView`、失敗時 `StartupErrorView` を出す（Android `Application.onCreate` 等価。
+  初期化エラーは画面で表面化し、サイレント degraded UI は出さない）。
+- `KeyNest/UI/Root/RootView.swift`: `NavigationStack` ＋ 右上 Settings 遷移。Credential List /
+  Settings は Phase 3.2 / 3.4 で差し替える `PhaseStubView` を仮配置（ナビゲーショングラフ＆テーマの
+  end-to-end ビルド確認用）。
+- **テーマ**: `KeyNest/UI/Theme/KNColor.swift`（Android `values{,-night}/colors.xml` の **semantic
+  layer のみ**を `UIColor(dynamicProvider:)` で 1 ファイル化）/ `KNFont.swift`（Manrope ＋ JetBrains Mono、
+  `Font.custom(PostScriptName, relativeTo:)` で Dynamic Type 連動）。Asset Catalog を持たない方針＝
+  すべて Swift コードで text-reviewable。raw palette は移植しない（必要な時に追加）。
+- **フォント**: `KeyNest/Resources/Fonts/{Manrope-Regular,Medium,SemiBold,Bold,JetBrainsMono-Regular}.ttf`
+  を Android `res/font/` から流用。`Info.plist` `UIAppFonts` に登録済み。PostScript 名はファイル名
+  と一致（`fontTools` 互換スクリプトで確認済み）。OFL ライセンス本文は Phase 6 OSS 画面で同梱。
+- **StrengthBar**: `KeyNest/UI/Components/StrengthBar.swift`。Android `widget/StrengthBar.kt` の SwiftUI
+  港。3 セグメント `14×4 pt` / gap `2 pt` / corner = height/2。`weak`→1/`medium`→2/`strong`→3 を塗り、
+  残りは `KNColor.borderStrong` のトラック。Android の `null → GONE` 等価は **呼び出し側で `if let`
+  ガード**して View を生成しない（SwiftUI 慣用）。
+- **XcodeGen**: `KeyNest/Resources/Fonts/*.ttf` は `KeyNest` ターゲットの `sources` 配下にあるため
+  自動で Copy Bundle Resources に入る。ビルド成果物 `KeyNest.app/*.ttf` で確認済み。
+
 ## 次フェーズ（本レビュー後）
-- Phase 3（SwiftUI UI / HIG）。observe 系 async stream を `@Observable` ViewModel の `.task` で消費。
+- Phase 3.2（Credential List）から再開。`ListCredentialsUseCase` / `ObserveRecentlyUsedUseCase` を
+  `@Observable` ViewModel の `.task` で消費し、`.searchable` ＋ `Menu` ソート ＋ swipe 削除を実装。
 - Phase 4（AutoFill 拡張 — パスワード: `ServiceIdentifierMatcher` / `CredentialIdentityStoreSync` /
   `CredentialProviderViewController`）。serviceIdentifier の正規化はここで実装（UseCase 側は現状 blank チェックのみ）。
 - Phase 5（AutoFill 拡張 — PassKey: 登録 / assertion coordinator。`PasskeyCreator` / `PasskeyAssertion` を
