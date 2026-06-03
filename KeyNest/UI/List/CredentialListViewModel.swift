@@ -87,6 +87,30 @@ final class CredentialListViewModel {
         }
     }
 
+    /// One-shot snapshot pull. Used when the app re-enters foreground so a
+    /// credential written by the AutoFill extension (another process) shows up
+    /// even when GRDB's cross-process `ValueObservation` notification is late.
+    func refreshSnapshot() async {
+        do {
+            let list = try await repository.listAll(sort: sort)
+            allCredentials = list
+            // Derive a recently-used view from the same snapshot so the
+            // carousel is in sync; `observeRecent` will overtake this once
+            // the stream catches up.
+            let recents = list
+                .compactMap { credential -> (Credential, Int64)? in
+                    guard let used = credential.lastUsedAt else { return nil }
+                    return (credential, used)
+                }
+                .sorted { $0.1 > $1.1 }
+                .prefix(5)
+                .map { $0.0 }
+            recentList = Array(recents)
+        } catch {
+            // Snapshot refresh is best-effort; the streams remain authoritative.
+        }
+    }
+
     // MARK: - Actions
 
     func onQueryChanged(_ value: String) { query = value }

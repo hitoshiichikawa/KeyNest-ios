@@ -13,6 +13,7 @@ import KeyNestKit
 struct CredentialListView: View {
     @State private var viewModel: CredentialListViewModel
     @State private var pendingDelete: Credential?
+    @Environment(\.scenePhase) private var scenePhase
     private let services: ServiceLocator
 
     init(services: ServiceLocator) {
@@ -37,6 +38,16 @@ struct CredentialListView: View {
             }
             .task {
                 await viewModel.observeRecent()
+            }
+            .task { await viewModel.refreshSnapshot() }
+            .onChange(of: scenePhase) { _, phase in
+                // GRDB's cross-process ValueObservation can lag a few seconds
+                // when the AutoFill extension writes to the vault. Re-syncing
+                // on foreground guarantees a freshly-saved credential shows
+                // up the moment the user opens the host app.
+                if phase == .active {
+                    Task { await viewModel.refreshSnapshot() }
+                }
             }
             .alert(item: $viewModel.actionMessage) { msg in
                 Alert(title: Text(msg.text))
