@@ -72,7 +72,8 @@
 - [x] 3.1 共通基盤: `KeyNestApp`(@main), `NavigationStack` ルート, カラーアセット / フォント登録, `StrengthBar` 等 Components
   - `KeyNest/KeyNestApp.swift`（`ServiceLocator.makeShared()` を `.task` で起動 → `RootView` / 失敗時 `StartupErrorView`）、`KeyNest/UI/Root/RootView.swift`（`NavigationStack` ＋ Settings 遷移の placeholder）。テーマは `KeyNest/UI/Theme/{KNColor,KNFont}.swift`（Android `colors.xml` / `values-night` を `UIColor(dynamicProvider:)` で 1 ファイル化、Manrope/JetBrains Mono は `KeyNest/Resources/Fonts/*.ttf` ＋ `Info.plist` `UIAppFonts`）。`KeyNest/UI/Components/StrengthBar.swift`（3 セグメント 14×4 pt / gap 2 pt、weak/medium/strong で塗り分け）
   - _Requirements: 8.2, 8.3_
-- [ ] 3.2 Credential List（検索 `.searchable`・ソート `Menu`・最近使った・空状態 initial/no-match・複製/削除）
+- [x] 3.2 Credential List（検索 `.searchable`・ソート `Menu`・最近使った・空状態 initial/no-match・複製/削除）
+  - `KeyNest/UI/List/CredentialListViewModel.swift`（`@Observable` / `@MainActor`、`ListCredentialsUseCase` / `ObserveRecentlyUsedUseCase` を `for try await` で消費。sort 変更は View の `.task(id:)` で再購読＝Kotlin `flatMapLatest` 等価）/ `CredentialListView.swift`（`.searchable`、ソート `Menu`（updated/label/domain）、Recently used 水平カルーセル、空状態 initial/no-match、leading swipe で複製・trailing swipe で `confirmationDialog` 削除）。署名フィルタ／PassKey 行は v1 スコープ外
   - _Requirements: 7.1_
 - [ ] 3.3 Credential Edit（label/username/password/target-domain/custom fields≤10/advanced・複製・削除・重複検出）＋ Domain Picker sheet
   - _Requirements: 7.2, 5.1_

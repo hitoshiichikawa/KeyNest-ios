@@ -195,9 +195,37 @@ Flow 相当）は本フェーズでは入れない（スナップショットの
 - **XcodeGen**: `KeyNest/Resources/Fonts/*.ttf` は `KeyNest` ターゲットの `sources` 配下にあるため
   自動で Copy Bundle Resources に入る。ビルド成果物 `KeyNest.app/*.ttf` で確認済み。
 
+## Phase 3.2 Credential List — 完了
+
+### 3.2 一覧画面
+- `KeyNest/UI/List/CredentialListViewModel.swift`（`@MainActor` + `@Observable`）。Android の
+  `CredentialListViewModel` から **署名フィルタ** と **PassKey 行のマージ** を落とした最小ポート:
+  - 署名フィルタは iOS 設計から除外（design Non-Goals: パッケージ署名照合を作らない）。
+  - PassKey 行は List に混ぜず、Settings / 専用画面で扱う方針。Req 7.1 はパスワード一覧の検索/ソート/
+    最近使った/空状態/複製/削除を要求しており、本 commit でその範囲を満たす。
+- **観測モデル**: 主リストは `ListCredentialsUseCase` を `.task(id: vm.sort)` で再購読し、sort 変更時に
+  ストリームを再起動する（Kotlin `flatMapLatest` 等価）。Recently used は独立した `.task` で観測。
+  ViewModel 側の `for try await` ループは `CancellationError` を catch して再起動を許可。
+- **純粋ヘルパ**: `applySearch`（label/username/serviceIdentifier の case-insensitive contains。
+  Android `applySearch` を踏襲し、`packageName` → `serviceIdentifier`）と `computeEmptyKind`
+  （`.initial` = vault が空 ＆ query 空、`.noMatch` = query 非空で intersection が空）を `static` で
+  公開。後の UI テスト target 整備時にここをそのまま検証する想定。
+- `KeyNest/UI/List/CredentialListView.swift`: `.searchable` ＋ ソート `Menu`、Recently used 水平
+  カルーセル、空状態 View、leading swipe で複製・trailing swipe で `confirmationDialog` 削除確認。
+  リストの背景は `KNColor.bg`（`scrollContentBackground(.hidden)` + 自前 background）。
+- 失敗フィードバックは `ActionMessage`（`Identifiable`）＋ `.alert(item:)`。例外型名のみ surface
+  （NFR 1.1: plaintext を露出しない）。
+
+### 確認したい論点
+- Recently used を `query` 入力中は隠す挙動（Android は常時表示）。検索集中度を上げるため iOS では
+  query 非空時に Section を畳む。要レビュー。
+- 複製ボタンは leading swipe（青）／削除は trailing（赤）。iOS では trailing destructive がHIG。
+  Android の long-press メニュー UI は採用せず、HIG 寄せ。
+
 ## 次フェーズ（本レビュー後）
-- Phase 3.2（Credential List）から再開。`ListCredentialsUseCase` / `ObserveRecentlyUsedUseCase` を
-  `@Observable` ViewModel の `.task` で消費し、`.searchable` ＋ `Menu` ソート ＋ swipe 削除を実装。
+- Phase 3.3（Credential Edit）。`SaveCredentialUseCase` / `UpdateCredentialUseCase` を `.task` で
+  await。Domain Picker は `.sheet`、カスタムフィールド ≤ 10 制約を View 側でクランプ。重複検出は
+  既存 use case にエラー型として無いため Save 経路に追加するか View 側で事前 lookup するか要判断。
 - Phase 4（AutoFill 拡張 — パスワード: `ServiceIdentifierMatcher` / `CredentialIdentityStoreSync` /
   `CredentialProviderViewController`）。serviceIdentifier の正規化はここで実装（UseCase 側は現状 blank チェックのみ）。
 - Phase 5（AutoFill 拡張 — PassKey: 登録 / assertion coordinator。`PasskeyCreator` / `PasskeyAssertion` を
