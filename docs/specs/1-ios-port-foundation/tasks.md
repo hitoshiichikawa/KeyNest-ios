@@ -118,7 +118,11 @@
   - `KeyNest/Resources/Localizable.xcstrings`（Xcode 15+ JSON カタログ）。sourceLanguage=en、ja 翻訳を 80+ key 同梱（List / Edit / Settings / Onboarding / Danger / OSS / AutoFill picker / PassKey confirm）。`project.yml` に `developmentLanguage: en` ＋ `knownRegions: [en, ja]`。SwiftUI `Text("…")` リテラルは LocalizedStringKey として自動解決
   - _Requirements: 8.1_
   - _Boundary: KeyNestKit/Resources_
-- [ ] 6.2 センシティブ画面保護（`.privacySensitive` / スクショ時マスク）・redact ログ・Keychain ThisDeviceOnly 監査 (P)
+- [x] 6.2 センシティブ画面保護（`.privacySensitive` / スクショ時マスク）・redact ログ・Keychain ThisDeviceOnly 監査 (P)
+  - **App switcher 保護**: `KeyNestApp.AppShell` で `@Environment(\.scenePhase) != .active` 時に `PrivacyShield`（KeyNest ロゴ + ブランドカラーのフル overlay）を被せる。OS が suspend 時に撮るスナップショットには vault が写らない（NFR 1.2）。
+  - **`.privacySensitive()` 監査**: Edit 画面の `PasswordField` / `CustomFieldRow` に既適用、それ以外（label / username / serviceIdentifier）は redact 対象外と判断（Android `toString` redact と同じスタンス）。
+  - **SafeLog 監査**: `SafeLog.warn/info/error` 4 callsite（`UnlockVaultUseCase` / `EncryptedCustomFieldsCodec` / `CredentialIdentityStoreSync` 4 経路）すべて静的メッセージ ＋ error type 名のみ。`Logger` interpolation は `privacy: .public` で固定し、動的データを混入させない契約。
+  - **Keychain ThisDeviceOnly**: `KeychainDataKeyStore`（`DataKeyProvider.swift`）で `kSecAttrAccessible = kSecAttrAccessibleWhenUnlockedThisDeviceOnly` ＋ `kSecAttrSynchronizable = false`。Secure Enclave KEK 側も `.privateKeyUsage` のみ＝iCloud 同期対象外（NFR 1.3）。
   - _Requirements: NFR 1.1, NFR 1.2, NFR 1.3_
   - _Boundary: KeyNest/UI_
 - [ ]* 6.3 結合/E2E テスト拡充（GRDB 実 DB CRUD、IdentityStore 同期、Safari 自動入力手動確認手順）

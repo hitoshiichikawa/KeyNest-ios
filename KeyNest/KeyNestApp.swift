@@ -16,19 +16,12 @@ struct KeyNestApp: App {
 
     var body: some Scene {
         WindowGroup {
-            if let services {
-                if onboardingComplete {
-                    RootView(services: services)
-                } else {
-                    OnboardingView(onContinue: { onboardingComplete = true })
-                }
-            } else if let startupError {
-                StartupErrorView(error: startupError)
-            } else {
-                Color(KNColor.bg)
-                    .ignoresSafeArea()
-                    .task { await bootstrap() }
-            }
+            AppShell(
+                services: services,
+                startupError: startupError,
+                onboardingComplete: $onboardingComplete,
+                bootstrap: bootstrap
+            )
         }
     }
 
@@ -51,6 +44,67 @@ struct KeyNestApp: App {
             }
         } catch {
             startupError = error
+        }
+    }
+}
+
+/// Holds the running app content + a privacy shield. The shield is drawn
+/// whenever the scene is not active (App Switcher, control center, incoming
+/// call), so the system snapshot taken when the app suspends never captures
+/// vault contents (NFR 1.2).
+private struct AppShell: View {
+    let services: ServiceLocator?
+    let startupError: Error?
+    @Binding var onboardingComplete: Bool
+    let bootstrap: () async -> Void
+
+    @Environment(\.scenePhase) private var scenePhase
+
+    var body: some View {
+        ZStack {
+            content
+
+            if scenePhase != .active {
+                PrivacyShield()
+                    .transition(.opacity)
+            }
+        }
+        .animation(.easeInOut(duration: 0.15), value: scenePhase == .active)
+    }
+
+    @ViewBuilder
+    private var content: some View {
+        if let services {
+            if onboardingComplete {
+                RootView(services: services)
+            } else {
+                OnboardingView(onContinue: { onboardingComplete = true })
+            }
+        } else if let err = startupError {
+            StartupErrorView(error: err)
+        } else {
+            Color(KNColor.bg)
+                .ignoresSafeArea()
+                .task { await bootstrap() }
+        }
+    }
+}
+
+/// Full-screen overlay that hides vault contents during App Switcher
+/// transitions and similar phase changes. Simple brand chrome only — no
+/// secrets, no live data.
+private struct PrivacyShield: View {
+    var body: some View {
+        ZStack {
+            KNColor.bg.ignoresSafeArea()
+            VStack(spacing: 12) {
+                Image(systemName: "key.horizontal.fill")
+                    .font(.system(size: 64))
+                    .foregroundStyle(KNColor.primary)
+                Text("KeyNest")
+                    .font(KNFont.title3)
+                    .foregroundStyle(KNColor.text2)
+            }
         }
     }
 }
