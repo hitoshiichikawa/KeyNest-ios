@@ -98,8 +98,9 @@
 - [x] 4.2 `CredentialIdentityStoreSync`（保存/更新/削除で `ASCredentialIdentityStore` 同期）
   - `KeyNestKit/AutoFill/CredentialIdentityStoreSync.swift`（`actor`、protocol `CredentialIdentityStoreSyncing` ＋ `NoopCredentialIdentityStoreSync`）。`replaceAll` (snapshot reconcile)、`upsert`、`remove`、`removeAll`。`isEnabled` ガード（disabled なら IPC スキップ）、エラーは `SafeLog.warn` で握り潰す。`ServiceLocator` に配線、`makeShared()` 経路で本番 `ASCredentialIdentityStore.shared` を使用。`CredentialEditViewModel` / `CredentialListViewModel` / `DangerZoneViewModel` の各 CRUD 経路から同期、`KeyNestApp` 起動時に `replaceAll(with: listAll)` で reconcile
   - _Requirements: 5.2, 5.5_
-- [ ] 4.3 `CredentialProviderViewController`（`prepareCredentialList` / `provideCredentialWithoutUserInteraction` / UI 選択→生体→復号→`ASPasswordCredential`）
-  - 一致なし・例外時の安全終了（cancelRequest）
+- [x] 4.3 `CredentialProviderViewController`（`prepareCredentialList` / `provideCredentialWithoutUserInteraction` / UI 選択→生体→復号→`ASPasswordCredential`）
+  - `AutoFillExtension/CredentialProviderViewController.swift`: `ServiceLocator.makeShared()` で App Group / Keychain 共有。`prepareCredentialList(for:)` → `listAll(.updatedDesc)` を `ServiceIdentifierMatcher.normalize` で絞り込み → `UIHostingController` で `AutoFillPickerView` を描画。silent path（`provideCredentialWithoutUserInteraction`）は常に `userInteractionRequired` で OS に UI 経路へ差し戻し（Req 4.1 を必須化）。`prepareInterfaceToProvideCredential` は同じ生体→`UnlockVaultUseCase`→`ASPasswordCredential` 経路。成功時は `markCredentialUsed` 副作用＋ `completeRequest`。失敗・例外・取消は `cancelRequest(withError:)`（NFR 3.1 安全終了）
+  - `AutoFillExtension/AutoFillPickerView.swift`: SwiftUI Picker。Matched suggestions section ＋ all credentials section ＋ `.searchable`、空状態 footer
   - _Requirements: 5.3, 5.4, NFR 3.1_
 
 ## Phase 5: AutoFill 拡張 — PassKey（iOS 17+）

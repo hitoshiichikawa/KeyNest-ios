@@ -361,10 +361,68 @@ Flow 相当）は本フェーズでは入れない（スナップショットの
 - 3.6 Onboarding（AutoFill 有効化導線 + PassKey status）
 - 既存 KeyNestKitTests 80 件は緑のまま維持。UI フローは Sim/実機での目視確認が次の検証ステップ。
 
+## Phase 4 AutoFill (password) — 完了
+
+### 4.1 ServiceIdentifierMatcher
+- `normalize(_:)` パイプ: trim → lowercase → scheme → userInfo → port → path/query/fragment →
+  末尾 `.` → 先頭 `www.` の順で剝がす。idempotent。Unicode IDN は OS が解決済みを渡してくる前提で
+  ASCII-lowercase 範囲のみ。
+- `matches(stored:requested:)`: 正規化後の完全一致 ＆ **両方とも非空**。サブドメインは **意図的に
+  厳密**（`m.example.com` ≠ `example.com`）。look-alike spoof 安全側、Apple `ASCredentialServiceIdentifier`
+  の暗黙挙動と同方向。
+- テスト 14 件で scheme/path/port/userInfo/末尾ドット/www/lowercase/空白/idempotency/サブドメイン/
+  typosquat を境界値固定。
+
+### 4.2 CredentialIdentityStoreSync
+- `actor` ベース。protocol `CredentialIdentityStoreSyncing` + 実装 + `Noop` フォールバック。
+  `replaceAll` / `upsert` / `remove` / `removeAll` の 4 公開メソッド、すべて `state().isEnabled`
+  ガードで disabled 時は IPC をスキップ。エラーは `SafeLog.warn` で握り潰し、CRUD の本流は
+  止めない。
+- ASPasswordCredentialIdentity の `recordIdentifier` は `String(credentialId.value)` を採用。
+  serviceIdentifier は `normalize` 経由で `.domain` 型で登録。
+- 配線: `ServiceLocator` に追加し `makeShared()` で本番 store。`CredentialEditViewModel`
+  （save: identifying-tuple が変わったら旧 identity を remove してから upsert / delete: remove /
+  duplicate: upsert）、`CredentialListViewModel`（swipe delete・duplicate）、`DangerZoneViewModel`
+  （ClearVault 後 removeAll）、`KeyNestApp.bootstrap`（detached Task で `listAll → replaceAll`
+  reconcile）。
+- **テスト方針**: ASCredentialIdentityStore は OS 提供のため単体テストでは触らず、`Noop`
+  に差し替え可能な設計でカバー（実機/Sim での目視検証は Phase 6 の手順に集約）。
+
+### 4.3 CredentialProviderViewController（拡張）
+- `AutoFillExtension/CredentialProviderViewController.swift` ＋ SwiftUI 子画面
+  `AutoFillPickerView.swift`。
+- フロー:
+  - `prepareCredentialList(for:)` → `listAll(.updatedDesc)` を `ServiceIdentifierMatcher.normalize`
+    で絞り込み → `UIHostingController` で `AutoFillPickerView` を描画（Suggested ＋ All の 2 セクション、
+    `.searchable` ＋ 空状態 footer）。
+  - `provideCredentialWithoutUserInteraction(for:)` は **常に**
+    `ASExtensionError.userInteractionRequired` で OS に UI 経路へ差し戻す（Req 4.1 を必須化＝
+    silent fill では生体未通過の平文露出を許可しない）。
+  - `prepareInterfaceToProvideCredential(for:)` は同じ生体 → `UnlockVaultUseCase` →
+    `ASPasswordCredential` 経路。`recordIdentifier` を `Int64` → `CredentialId` に復元。
+  - 成功時 `markCredentialUsed` を best-effort で打って `completeRequest`。Plaintext は close()
+    でゼロ消去（NFR 1.1）。
+  - 失敗・取消は `cancelRequest(withError:)` で安全終了（NFR 3.1）。
+- 拡張は KeyNestKit を embed = false でリンクし、host app 側で embed する project.yml 設定を
+  そのまま利用。`AuthenticationServices` API は `APPLICATION_EXTENSION_API_ONLY=YES` 下で使用可能。
+
+### 確認したい論点
+- silent path を常に `userInteractionRequired` で返す方針: ユーザー体験は遅くなる代わりに
+  生体未通過の平文露出は起きない。Apple のサンプルにも同パターンあり。
+- 「Other credentials」セクションを匙加減的に常時表示する判断（誤マッチ救済）。プライバシー上は
+  candidate 限定の方が清潔。Phase 6 でユーザー設定化も視野。
+
+### Mac 検証項目（追記）
+- AutoFill 拡張の Sim 実行: ホストアプリで credential を 1 件保存 → Sim の Settings ▸ Passwords
+  で KeyNest を AutoFill provider に有効化 → Safari でフォーム fill が出ること、認証後に
+  入力が走ること。
+- AutoFill 状態 disabled 時、`CredentialIdentityStoreSync` の `isEnabled` ガードが効いて IPC を
+  スキップしていること（Console.app で SafeLog を確認）。
+
 ## 次フェーズ
-- Phase 4（AutoFill 拡張 — パスワード）。`ServiceIdentifierMatcher` の正規化規則確定 →
-  Edit 画面の Domain Picker sheet を後追い装着 → `CredentialIdentityStoreSync` →
-  `CredentialProviderViewController`。
+- Phase 5（AutoFill — PassKey）。`ASCredentialProviderViewController` の iOS 17+ 経路
+  （`ASPasskeyCredentialRequest` 登録 / 認証）。既存 `PasskeyCreator` / `PasskeyAssertion` をそのまま
+  載せ、`ASPasskeyRegistrationCredential` / `ASPasskeyAssertionResponse` で OS に返す。
 - Phase 4（AutoFill 拡張 — パスワード: `ServiceIdentifierMatcher` / `CredentialIdentityStoreSync` /
   `CredentialProviderViewController`）。serviceIdentifier の正規化はここで実装（UseCase 側は現状 blank チェックのみ）。
 - Phase 5（AutoFill 拡張 — PassKey: 登録 / assertion coordinator。`PasskeyCreator` / `PasskeyAssertion` を
