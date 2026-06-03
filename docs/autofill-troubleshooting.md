@@ -80,10 +80,28 @@ Apple Keychain 等も同じ判定です。
 両方で使う場合は、片方を保存後 **複製** メニューで複製し、ドメインだけ書き換えて
 ください。
 
+## 多要素フォーム（company id + user id + password など）
+
+iOS の標準 AutoFill API（`ASPasswordCredential`）は `user` と `password` の
+**2 フィールドだけ** をフォームに自動入力できます。`company_id` のような 3 つ目
+以降のフィールドは、KeyNest を含む **どのパスワードマネージャでも自動入力経路で
+は埋められません**（iOS の制限）。
+
+KeyNest では次の 2 つの回避策を用意しています：
+
+1. **コピー → 貼り付け**: Edit / 詳細画面の各カスタムフィールド右に Copy
+   アイコン。タップでクリップボードに入り、60 秒で自動消去します。
+2. **Text Insertion (iOS 18+)**: 任意のテキスト欄にフォーカス → キーボード
+   メニュー ▸ "Insert Text from KeyNest" → credential 選択 → field 選択（username
+   / password / カスタムフィールドのどれでも）→ 選んだ値が入力されます。
+
+iOS 17 では (1) のみ、iOS 18 以降は (2) も利用可能です。
+
 ## OS のバージョン要件
 
 - パスワード自動入力: iOS 17+
 - PassKey 登録 / 認証: iOS 17+
+- "Insert Text from KeyNest" 経路: **iOS 18+**
 
 iOS 16 以下では PassKey 経路は表示されません（Settings の PassKey 行は
 "Requires iOS 17" 表示になります）。

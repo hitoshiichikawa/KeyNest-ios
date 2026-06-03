@@ -357,6 +357,40 @@ final class CredentialProviderViewController: ASCredentialProviderViewController
         }
     }
 
+    // MARK: - Text insertion (iOS 18+)
+
+    @available(iOS 18, *)
+    override func prepareInterfaceForUserChoosingTextToInsert() {
+        guard let services = locator() else {
+            failSafely()
+            return
+        }
+        Task {
+            do {
+                let snapshot = try await services.credentialRepository.listAll(sort: .updatedDesc)
+                await MainActor.run {
+                    let view = TextInsertPickerView(
+                        credentials: snapshot,
+                        services: services,
+                        onInsert: { [weak self] text in
+                            self?.completeTextInsert(text)
+                        },
+                        onCancel: { [weak self] in self?.cancelByUser() }
+                    )
+                    hostConfirmView(view)
+                }
+            } catch {
+                failSafely()
+            }
+        }
+    }
+
+    @MainActor
+    @available(iOS 18, *)
+    private func completeTextInsert(_ text: String) {
+        extensionContext.completeRequest(withTextToInsert: text, completionHandler: nil)
+    }
+
     // MARK: - UI hosting helper
 
     @MainActor

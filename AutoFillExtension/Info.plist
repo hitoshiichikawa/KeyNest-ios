@@ -36,6 +36,9 @@
 				<true/>
 				<key>ProvidesPasskeys</key>
 				<true/>
+				<!-- iOS 18+: keyboard "Insert Text from KeyNest" entry. -->
+				<key>ProvidesTextToInsert</key>
+				<true/>
 			</dict>
 		</dict>
 	</dict>
