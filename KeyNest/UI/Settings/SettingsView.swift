@@ -1,5 +1,6 @@
 import SwiftUI
 import KeyNestKit
+import AuthenticationServices
 
 /// Settings screen. Req 7.3 (Phase 3.4).
 ///
@@ -35,9 +36,7 @@ struct SettingsView: View {
                 )
                 if !viewModel.autofillEnabled {
                     Button {
-                        if let url = URL(string: UIApplication.openSettingsURLString) {
-                            UIApplication.shared.open(url)
-                        }
+                        ASSettingsHelper.openCredentialProviderAppSettings { _ in }
                     } label: {
                         Label("Enable in Settings", systemImage: "arrow.up.right.square")
                     }
@@ -67,6 +66,16 @@ struct SettingsView: View {
                 )
             } header: {
                 Text("Vault")
+            }
+
+            Section {
+                NavigationLink {
+                    PasskeyListView(services: services)
+                } label: {
+                    Label("Passkeys", systemImage: "person.badge.key")
+                }
+            } header: {
+                Text("Passkeys")
             }
 
             Section {

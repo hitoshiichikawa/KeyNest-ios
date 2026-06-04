@@ -124,6 +124,40 @@ targets:
     settings:
       base:
         PRODUCT_BUNDLE_IDENTIFIER: io.github.hitoshiichikawa.ios.keynest.kit.tests
+        GENERATE_INFOPLIST_FILE: YES
+
+  # ---- Unit tests for the host app (KeyNest target) ----
+  # KeyNestKitTests covers framework code; this target covers view models in
+  # the app module that need `@testable import KeyNest`.
+  KeyNestTests:
+    type: bundle.unit-test
+    platform: iOS
+    sources:
+      - path: Tests/KeyNestTests
+    dependencies:
+      - target: KeyNest
+      - target: KeyNestKit
+    settings:
+      base:
+        PRODUCT_BUNDLE_IDENTIFIER: io.github.hitoshiichikawa.ios.keynest.tests
+        GENERATE_INFOPLIST_FILE: YES
+
+  # ---- UI tests (App Store screenshot capture) ----
+  # Drives the host app with --seed-demo and saves XCTAttachments of each
+  # key screen. scripts/screenshots.sh runs this on both iPhone and iPad
+  # simulators and renames the attachments per App Store convention.
+  KeyNestUITests:
+    type: bundle.ui-testing
+    platform: iOS
+    sources:
+      - path: Tests/KeyNestUITests
+    dependencies:
+      - target: KeyNest
+    settings:
+      base:
+        PRODUCT_BUNDLE_IDENTIFIER: io.github.hitoshiichikawa.ios.keynest.uitests
+        TEST_TARGET_NAME: KeyNest
+        GENERATE_INFOPLIST_FILE: YES
 
 schemes:
   KeyNest:
@@ -136,3 +170,5 @@ schemes:
     test:
       targets:
         - KeyNestKitTests
+        - KeyNestTests
+        - KeyNestUITests

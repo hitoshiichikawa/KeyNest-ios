@@ -1,9 +1,11 @@
 import SwiftUI
+import AuthenticationServices
 
 /// First-run onboarding. Req 7.5: guide the user to enable KeyNest as an
-/// AutoFill provider; surface `PasskeyProviderStatus`. iOS cannot deep-link
-/// straight to the AutoFill toggle, so the screen explains the path and
-/// opens Settings.app at the top level.
+/// AutoFill provider; surface `PasskeyProviderStatus`. On iOS 17+ the
+/// "Open Settings" button deep-links into Settings ▸ Passwords ▸ AutoFill
+/// Passwords & Passkeys via `ASSettingsHelper`; on earlier OSes it falls back
+/// to the app's own Settings page (the only public option pre-17).
 ///
 /// Completion is up to the user: tapping "Continue" persists a flag via
 /// `@AppStorage("onboardingComplete")` from the parent, which then swaps
@@ -100,9 +102,7 @@ struct OnboardingView: View {
         VStack(spacing: 12) {
             if !viewModel.autofillEnabled {
                 Button {
-                    if let url = URL(string: UIApplication.openSettingsURLString) {
-                        UIApplication.shared.open(url)
-                    }
+                    ASSettingsHelper.openCredentialProviderAppSettings { _ in }
                 } label: {
                     Label("Open Settings", systemImage: "arrow.up.right.square")
                         .frame(maxWidth: .infinity)

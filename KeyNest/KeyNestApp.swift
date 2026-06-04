@@ -28,6 +28,16 @@ struct KeyNestApp: App {
     private func bootstrap() async {
         do {
             let locator = try ServiceLocator.makeShared()
+
+            if CommandLine.arguments.contains("--reset-onboarding") {
+                onboardingComplete = false
+            }
+
+            if DemoSeeder.isRequested() {
+                try await DemoSeeder.seed(services: locator)
+                onboardingComplete = true
+            }
+
             services = locator
             // Reconcile the OS credential-identity store with the vault so
             // the AutoFill UI never goes stale after an app launch (entries
