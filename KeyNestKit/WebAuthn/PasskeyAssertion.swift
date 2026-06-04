@@ -54,8 +54,9 @@ public enum PasskeyAssertionError: Error, Equatable {
 /// signature is computed with CryptoKit P-256 (ES256 = ECDSA/SHA-256) and
 /// returned in DER form.
 public enum PasskeyAssertion {
-    /// UP | UV. AT/ED/BE/BS = 0. Identical to `AuthenticatorDataBuilder.flagsAssertion`.
-    public static let flagsAssertion: UInt8 = 0x05
+    /// UP | UV | BE | BS = 0x1D. Mirrors `AuthenticatorDataBuilder.flagsAssertion`;
+    /// BE/BS are set to identify the credential as a modern passkey to RPs.
+    public static let flagsAssertion: UInt8 = 0x1D
 
     private static let signCountMax: Int64 = 0xFFFF_FFFF
 

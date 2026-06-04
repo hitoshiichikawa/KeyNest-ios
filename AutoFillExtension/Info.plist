@@ -17,6 +17,12 @@
 	     team-prefixed Keychain access group (iOS 17+ wildcard-profile fix). -->
 	<key>KNTeamIdentifier</key>
 	<string>$(DEVELOPMENT_TEAM)</string>
+
+	<!-- Required for LAPolicy.deviceOwnerAuthentication inside the extension to
+	     actually invoke Face ID. Host app's plist is NOT inherited by the
+	     extension, so this must be declared here too. -->
+	<key>NSFaceIDUsageDescription</key>
+	<string>KeyNest uses Face ID to fill credentials and create passkeys.</string>
 	<key>CFBundleName</key>
 	<string>$(PRODUCT_NAME)</string>
 	<key>CFBundleExecutable</key>

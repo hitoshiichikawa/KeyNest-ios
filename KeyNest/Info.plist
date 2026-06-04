@@ -17,6 +17,12 @@
 	     team-prefixed Keychain access group (iOS 17+ wildcard-profile fix). -->
 	<key>KNTeamIdentifier</key>
 	<string>$(DEVELOPMENT_TEAM)</string>
+
+	<!-- Required for LAPolicy.deviceOwnerAuthentication to actually invoke
+	     Face ID. Without this key iOS silently downgrades the prompt to
+	     passcode-only. The string is shown beneath the Face ID dialog. -->
+	<key>NSFaceIDUsageDescription</key>
+	<string>KeyNest uses Face ID to unlock your vault and reveal passwords.</string>
 	<key>CFBundleName</key>
 	<string>$(PRODUCT_NAME)</string>
 	<key>CFBundleExecutable</key>

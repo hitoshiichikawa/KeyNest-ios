@@ -7,11 +7,17 @@ import CryptoKit
 ///   rpIdHash (32) ‖ flags (1) ‖ signCount (4, big-endian) ‖ [attestedCredentialData] ‖ [extensions]
 ///
 /// Flags used by KeyNest:
-///   - registration : 0x45 = UP | UV | AT
-///   - assertion    : 0x05 = UP | UV
+///   - registration : 0x5D = UP | UV | BE | BS | AT  (modern passkey)
+///   - assertion    : 0x1D = UP | UV | BE | BS
+///
+/// BE (Backup Eligibility, 0x08) and BS (Backup State, 0x10) are required by
+/// iOS WebKit + most RPs to recognise the credential as a "passkey" rather
+/// than a legacy U2F authenticator. KeyNest's vault is technically
+/// device-bound, but the credential is conceptually a passkey, so both bits
+/// are set (matches 1Password / Bitwarden / iCloud Keychain behaviour).
 public enum AuthenticatorDataBuilder {
-    public static let flagsRegistration: UInt8 = 0x45
-    public static let flagsAssertion: UInt8 = 0x05
+    public static let flagsRegistration: UInt8 = 0x5D
+    public static let flagsAssertion: UInt8 = 0x1D
 
     /// SHA-256 of the RP ID (UTF-8). 32 bytes.
     public static func rpIdHash(_ rpId: String) -> Data {

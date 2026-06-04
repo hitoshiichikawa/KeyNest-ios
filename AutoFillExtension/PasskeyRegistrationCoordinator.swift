@@ -34,9 +34,8 @@ final class PasskeyRegistrationCoordinator {
     ///    the requesting RP. The `clientDataHash` is provided by iOS — we do
     ///    NOT compose `clientDataJSON` ourselves (design §PassKey).
     func register(request: ASPasskeyCredentialRequest) async -> Outcome {
-        let identity = request.credentialIdentity as? ASPasskeyCredentialIdentity
-        guard let identity else {
-            return .failed(reason: "Unexpected credentialIdentity shape")
+        guard let identity = request.credentialIdentity as? ASPasskeyCredentialIdentity else {
+            return .failed(reason: "credentialIdentity is \(type(of: request.credentialIdentity)), expected ASPasskeyCredentialIdentity")
         }
 
         let input = PasskeyCreateInput(
@@ -52,7 +51,7 @@ final class PasskeyRegistrationCoordinator {
         do {
             result = try services.passkeyCreator.create(input)
         } catch {
-            return .failed(reason: String(describing: type(of: error)))
+            return .failed(reason: "PasskeyCreator.create threw: \(error)")
         }
 
         var saveRequest = result.savePasskeyRequest
@@ -61,7 +60,7 @@ final class PasskeyRegistrationCoordinator {
         } catch {
             // Wipe the plaintext key even on failure (NFR 1.1).
             saveRequest.privateKey.resetBytes(in: 0..<saveRequest.privateKey.count)
-            return .failed(reason: String(describing: type(of: error)))
+            return .failed(reason: "PasskeyRepository.save threw: \(error)")
         }
         saveRequest.privateKey.resetBytes(in: 0..<saveRequest.privateKey.count)
 

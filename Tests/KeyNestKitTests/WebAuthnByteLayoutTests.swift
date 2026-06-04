@@ -66,7 +66,7 @@ final class WebAuthnByteLayoutTests: XCTestCase {
 
     // MARK: Authenticator data
 
-    func test_authData_assertion_is37BytesWithFlags0x05() {
+    func test_authData_assertion_is37BytesWithFlags0x1D() {
         let rpIdHash = Data(repeating: 0x00, count: 32)
         let authData = AuthenticatorDataBuilder.build(
             rpIdHash: rpIdHash,
@@ -74,12 +74,12 @@ final class WebAuthnByteLayoutTests: XCTestCase {
             signCount: 1
         )
         XCTAssertEqual(authData.count, 37)
-        XCTAssertEqual(authData[32], 0x05)                         // UP | UV
+        XCTAssertEqual(authData[32], 0x1D)                         // UP|UV|BE|BS
         XCTAssertEqual(authData.suffix(4), Data([0x00, 0x00, 0x00, 0x01])) // signCount BE
     }
 
-    func test_authData_registrationFlags_is0x45() {
-        XCTAssertEqual(AuthenticatorDataBuilder.flagsRegistration, 0x45) // UP | UV | AT
+    func test_authData_registrationFlags_is0x5D() {
+        XCTAssertEqual(AuthenticatorDataBuilder.flagsRegistration, 0x5D) // UP|UV|BE|BS|AT
     }
 
     func test_attestedCredentialData_layout() {

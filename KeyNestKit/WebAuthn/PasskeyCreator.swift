@@ -98,14 +98,19 @@ public struct PasskeyCreator {
         }
 
         let rpIdHash = AuthenticatorDataBuilder.rpIdHash(input.rpId)
+        // WebAuthn L3 §6.5.4: when fmt="none" the AAGUID MUST be 16 zero bytes
+        // (privacy requirement — a real AAGUID would identify the authenticator
+        // model to the RP, defeating the purpose of "none" attestation). iOS
+        // WebKit enforces this; sending a non-zero AAGUID with fmt="none"
+        // makes Safari surface NotAllowedError to the RP.
         let attestedCredentialData = AuthenticatorDataBuilder.attestedCredentialData(
-            aaguid: KeynestAaguid.bytes(),
+            aaguid: Data(repeating: 0, count: 16),
             credentialId: credentialIdBytes,
             publicKeyCose: publicKeyCose
         )
         let authenticatorData = AuthenticatorDataBuilder.build(
             rpIdHash: rpIdHash,
-            flags: AuthenticatorDataBuilder.flagsRegistration,  // 0x45 = UP|UV|AT
+            flags: AuthenticatorDataBuilder.flagsRegistration,  // 0x5D = UP|UV|BE|BS|AT
             signCount: 0,
             attestedCredentialData: attestedCredentialData
         )

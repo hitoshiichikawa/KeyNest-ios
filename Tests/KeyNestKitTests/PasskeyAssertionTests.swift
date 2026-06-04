@@ -3,7 +3,7 @@ import CryptoKit
 @testable import KeyNestKit
 
 /// Unit tests for `PasskeyAssertion` (Phase 2.5 / Req 6.3). Verifies the 37-byte
-/// authenticatorData layout (flags 0x05) and that the DER signature validates
+/// authenticatorData layout (flags 0x1D) and that the DER signature validates
 /// against the registered public key over `authData ‖ clientDataHash`. ECDSA is
 /// non-deterministic, so signature *validity* is asserted, not exact bytes.
 final class PasskeyAssertionTests: XCTestCase {
@@ -22,7 +22,7 @@ final class PasskeyAssertionTests: XCTestCase {
         let ad = [UInt8](result.authenticatorData)
         XCTAssertEqual(ad.count, 37)
         XCTAssertEqual(Data(ad[0..<32]), Data(SHA256.hash(data: Data("example.com".utf8))))
-        XCTAssertEqual(ad[32], 0x05)                                   // UP|UV, no AT/ED
+        XCTAssertEqual(ad[32], 0x1D)                                   // UP|UV|BE|BS
         XCTAssertEqual(Array(ad[33..<37]), [0x00, 0x00, 0x00, 0x2A])   // signCount 42 BE
 
         let signature = try P256.Signing.ECDSASignature(derRepresentation: result.signature)

@@ -1,6 +1,7 @@
 import AuthenticationServices
 import SwiftUI
 import KeyNestKit
+import os
 
 /// AutoFill Credential Provider extension entry point.
 ///
@@ -22,28 +23,39 @@ import KeyNestKit
 /// — the OS surfaces "no entry" instead of an error dialog.
 final class CredentialProviderViewController: ASCredentialProviderViewController {
 
+    override func viewDidLoad() {
+        super.viewDidLoad()
+        // Pin a placeholder before any prepareXxx callback fires so the user
+        // never sees a blank canvas during the SQLite + Secure Enclave
+        // warm-up that ServiceLocator.makeShared performs.
+        hostConfirmView(LoadingPlaceholderView())
+    }
+
     private var services: ServiceLocator?
 
-    private func locator() -> ServiceLocator? {
+    /// Async locator: ServiceLocator init opens the SQLite vault and unwraps
+    /// the Secure-Enclave KEK. Each of those takes hundreds of ms on cold
+    /// start, so we run them on a detached priority task and return on
+    /// MainActor only after they're done — the placeholder stays visible
+    /// throughout.
+    private func locatorAsync() async -> ServiceLocator? {
         if let services { return services }
-        do {
-            let s = try ServiceLocator.makeShared()
-            services = s
-            return s
-        } catch {
-            return nil
-        }
+        let built: ServiceLocator? = await Task.detached(priority: .userInitiated) {
+            try? ServiceLocator.makeShared()
+        }.value
+        if let built { services = built }
+        return built
     }
 
     // MARK: - UI path (user is picking a credential)
 
     override func prepareCredentialList(for serviceIdentifiers: [ASCredentialServiceIdentifier]) {
-        guard let services = locator() else {
-            failSafely()
-            return
-        }
         let rawIdentifiers = serviceIdentifiers.map(\.identifier)
         Task {
+            guard let services = await locatorAsync() else {
+                failSafely(reason: "ServiceLocator init failed")
+                return
+            }
             do {
                 let snapshot = try await services.credentialRepository.listAll(sort: .updatedDesc)
                 let matches = AutoFillCandidateSelection.filter(
@@ -136,14 +148,17 @@ final class CredentialProviderViewController: ASCredentialProviderViewController
     override func prepareInterfaceToProvideCredential(
         for credentialIdentity: ASPasswordCredentialIdentity
     ) {
-        guard let services = locator(),
-              let raw = credentialIdentity.recordIdentifier,
+        guard let raw = credentialIdentity.recordIdentifier,
               let recordId = Int64(raw) else {
-            failSafely()
+            failSafely(reason: "missing or non-numeric recordIdentifier")
             return
         }
         let id = CredentialId(recordId)
         Task {
+            guard let services = await locatorAsync() else {
+                failSafely(reason: "ServiceLocator init failed")
+                return
+            }
             do {
                 let credentials = try await services.credentialRepository.listAll(sort: .updatedDesc)
                 if let credential = credentials.first(where: { $0.id == id }) {
@@ -210,16 +225,16 @@ final class CredentialProviderViewController: ASCredentialProviderViewController
         for serviceIdentifiers: [ASCredentialServiceIdentifier],
         requestParameters: ASPasskeyCredentialRequestParameters
     ) {
-        guard let services = locator() else {
-            failSafely()
-            return
-        }
         let rpId = requestParameters.relyingPartyIdentifier
         let clientDataHash = requestParameters.clientDataHash
         let allowed = requestParameters.allowedCredentials
         let userVerification = requestParameters.userVerificationPreference
 
         Task {
+            guard let services = await locatorAsync() else {
+                failSafely(reason: "ServiceLocator init failed")
+                return
+            }
             let coordinator = PasskeyAssertionCoordinator(services: services)
             let candidate = await coordinator.pickCandidate(
                 rpId: rpId,
@@ -311,25 +326,33 @@ final class CredentialProviderViewController: ASCredentialProviderViewController
 
     @available(iOS 17, *)
     override func prepareInterface(forPasskeyRegistration registrationRequest: ASCredentialRequest) {
-        guard let passkeyRequest = registrationRequest as? ASPasskeyCredentialRequest,
-              let services = locator() else {
-            failSafely()
+        guard let passkeyRequest = registrationRequest as? ASPasskeyCredentialRequest else {
+            failSafely(reason: "registrationRequest is not ASPasskeyCredentialRequest (\(type(of: registrationRequest)))")
             return
         }
         let identity = passkeyRequest.credentialIdentity as? ASPasskeyCredentialIdentity
         let rpId = identity?.relyingPartyIdentifier ?? "unknown site"
         let userName = identity?.userName ?? ""
 
-        let confirm = PasskeyConfirmView(
-            mode: .register(rpId: rpId, userName: userName),
-            onConfirm: { [weak self] in
-                Task { @MainActor in
-                    await self?.runPasskeyRegistration(request: passkeyRequest, services: services)
-                }
-            },
-            onCancel: { [weak self] in self?.cancelByUser() }
-        )
-        hostConfirmView(confirm)
+        // Show the confirm sheet right away so the user sees KeyNest's UI
+        // even before the SQLite + Secure Enclave warm-up has finished.
+        // ServiceLocator is built in the background; if it fails we close.
+        Task {
+            guard let services = await locatorAsync() else {
+                failSafely(reason: "ServiceLocator init failed")
+                return
+            }
+            let confirm = PasskeyConfirmView(
+                mode: .register(rpId: rpId, userName: userName),
+                onConfirm: { [weak self] in
+                    Task { @MainActor in
+                        await self?.runPasskeyRegistration(request: passkeyRequest, services: services)
+                    }
+                },
+                onCancel: { [weak self] in self?.cancelByUser() }
+            )
+            hostConfirmView(confirm)
+        }
     }
 
     @MainActor
@@ -343,7 +366,7 @@ final class CredentialProviderViewController: ASCredentialProviderViewController
         let auth = await services.biometricAuthenticator
             .authenticate(reason: "Create a passkey for \(rpId)")
         guard case .succeeded = auth else {
-            cancelByUser()
+            cancelByUser(reason: "biometric auth not succeeded: \(auth)")
             return
         }
         let coordinator = PasskeyRegistrationCoordinator(services: services)
@@ -351,9 +374,9 @@ final class CredentialProviderViewController: ASCredentialProviderViewController
         case .success(let credential):
             extensionContext.completeRegistrationRequest(using: credential, completionHandler: nil)
         case .cancelled:
-            cancelByUser()
-        case .failed:
-            failSafely()
+            cancelByUser(reason: "coordinator returned .cancelled")
+        case .failed(let reason):
+            failSafely(reason: "passkey registration failed: \(reason)")
         }
     }
 
@@ -361,11 +384,11 @@ final class CredentialProviderViewController: ASCredentialProviderViewController
 
     @available(iOS 18, *)
     override func prepareInterfaceForUserChoosingTextToInsert() {
-        guard let services = locator() else {
-            failSafely()
-            return
-        }
         Task {
+            guard let services = await locatorAsync() else {
+                failSafely(reason: "ServiceLocator init failed")
+                return
+            }
             do {
                 let snapshot = try await services.credentialRepository.listAll(sort: .updatedDesc)
                 await MainActor.run {
@@ -416,18 +439,25 @@ final class CredentialProviderViewController: ASCredentialProviderViewController
 
     // MARK: - Safe failure / cancel (NFR 3.1)
 
-    private func failSafely() {
+    private func failSafely(reason: String = "(unspecified)", file: StaticString = #file, line: UInt = #line) {
+        // Surface the cause in Console.app and in the NSError so the host browser
+        // (Safari) can include it in the WebAuthn error message. webauthn.io
+        // still shows the generic "user denied permission" string but the NSLog
+        // line lets us pinpoint the failure path.
+        NSLog("KNAF failSafely: %@ (%@:%lu)", reason, String(describing: file), line)
         Task { @MainActor in
             extensionContext.cancelRequest(
                 withError: NSError(
                     domain: ASExtensionErrorDomain,
-                    code: ASExtensionError.failed.rawValue
+                    code: ASExtensionError.failed.rawValue,
+                    userInfo: [NSLocalizedDescriptionKey: "KeyNest: \(reason)"]
                 )
             )
         }
     }
 
-    private func cancelByUser() {
+    private func cancelByUser(reason: String = "(unspecified)", file: StaticString = #file, line: UInt = #line) {
+        NSLog("KNAF cancelByUser: %@ (%@:%lu)", reason, String(describing: file), line)
         Task { @MainActor in
             extensionContext.cancelRequest(
                 withError: NSError(

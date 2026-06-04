@@ -43,14 +43,15 @@ final class PasskeyCreatorTests: XCTestCase {
         XCTAssertEqual(result.publicKeyCose, expectedCose)
         XCTAssertEqual(result.publicKeyCose.count, 77)
 
-        // authenticatorData: rpIdHash(32) | 0x45 | signCount(4) | AAGUID(16) |
+        // authenticatorData: rpIdHash(32) | 0x5D | signCount(4) | AAGUID(16) |
         // credIdLen(2) | credentialId(32) | COSE(77)  = 164 bytes.
         let ad = [UInt8](result.authenticatorData)
         XCTAssertEqual(ad.count, 164)
         XCTAssertEqual(Data(ad[0..<32]), Data(SHA256.hash(data: Data("example.com".utf8))))
-        XCTAssertEqual(ad[32], 0x45)                                   // UP|UV|AT
+        XCTAssertEqual(ad[32], 0x5D)                                   // UP|UV|BE|BS|AT
         XCTAssertEqual(Array(ad[33..<37]), [0x00, 0x00, 0x00, 0x00])   // signCount 0
-        XCTAssertEqual(Data(ad[37..<53]), KeynestAaguid.bytes())       // AAGUID
+        // WebAuthn L3 §6.5.4: fmt="none" mandates zero AAGUID (privacy).
+        XCTAssertEqual(Data(ad[37..<53]), Data(repeating: 0, count: 16))
         XCTAssertEqual(Array(ad[53..<55]), [0x00, 0x20])               // credIdLen = 32
         XCTAssertEqual(Data(ad[55..<87]), credentialIdBytes)
         XCTAssertEqual(Data(ad[87..<164]), expectedCose)
