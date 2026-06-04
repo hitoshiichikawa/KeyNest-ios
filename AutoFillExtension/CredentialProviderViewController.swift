@@ -25,25 +25,39 @@ final class CredentialProviderViewController: ASCredentialProviderViewController
 
     override func viewDidLoad() {
         super.viewDidLoad()
+        // Paint the background colour with raw UIKit so the screen never
+        // flashes black for the handful of frames before the SwiftUI host
+        // finishes its first layout — UIKit chrome is up by the time
+        // `viewDidLoad` runs but SwiftUI's first render needs another tick.
+        view.backgroundColor = .systemBackground
         // Pin a placeholder before any prepareXxx callback fires so the user
         // never sees a blank canvas during the SQLite + Secure Enclave
         // warm-up that ServiceLocator.makeShared performs.
         hostConfirmView(LoadingPlaceholderView())
     }
 
-    private var services: ServiceLocator?
+    /// Process-wide ServiceLocator cache. iOS keeps an AS extension's process
+    /// alive for a short window between consecutive invocations (the OS reuses
+    /// it instead of re-spawning a fresh .appex); caching here makes the 2nd+
+    /// invocation effectively free, since the SQLite open + Secure-Enclave KEK
+    /// unwrap only run once per process lifetime.
+    ///
+    /// Per-VC `services` instance vars would NOT survive between invocations
+    /// because iOS creates a fresh view controller for every prepareXxx call.
+    @MainActor private static var sharedServices: ServiceLocator?
 
     /// Async locator: ServiceLocator init opens the SQLite vault and unwraps
     /// the Secure-Enclave KEK. Each of those takes hundreds of ms on cold
     /// start, so we run them on a detached priority task and return on
     /// MainActor only after they're done — the placeholder stays visible
-    /// throughout.
+    /// throughout. Subsequent invocations within the same process hit the
+    /// `sharedServices` cache and return synchronously fast.
     private func locatorAsync() async -> ServiceLocator? {
-        if let services { return services }
+        if let cached = Self.sharedServices { return cached }
         let built: ServiceLocator? = await Task.detached(priority: .userInitiated) {
             try? ServiceLocator.makeShared()
         }.value
-        if let built { services = built }
+        if let built { Self.sharedServices = built }
         return built
     }
 
@@ -175,8 +189,8 @@ final class CredentialProviderViewController: ASCredentialProviderViewController
     // MARK: - Authenticate + fill
 
     private func authenticateAndFill(credential: Credential) async {
-        guard let services else {
-            failSafely()
+        guard let services = await locatorAsync() else {
+            failSafely(reason: "ServiceLocator init failed")
             return
         }
         let auth = await services.biometricAuthenticator
