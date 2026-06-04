@@ -166,14 +166,18 @@ KeyNest is an offline password / passkey vault.
 
 Demo flow:
 1. Launch the app. The Onboarding screen explains how to enable
-   AutoFill in iOS Settings.
+   AutoFill; the "Open Settings" button deep-links directly to
+   Settings ▸ Passwords ▸ AutoFill Passwords & Passkeys (via
+   ASSettingsHelper, iOS 17+).
 2. Tap "Skip for now" to reach the main vault screen.
 3. Tap the + button (top-left in the sidebar on iPad, top-right on iPhone)
    to add a credential.
-4. To test the AutoFill extension: Settings ▸ General ▸ AutoFill Passwords
-   & Passkeys ▸ enable KeyNest. Then open Safari and trigger a login form.
-5. To test the PassKey path (iOS 17+): use webauthn.io or any RP that
-   offers passkey registration.
+4. To test the AutoFill extension: enable KeyNest from the AutoFill
+   settings panel reached in step 1, then open Safari and trigger a
+   login form.
+5. To test the passkey path (iOS 17+): use webauthn.io and tap Register;
+   KeyNest will appear as a passkey provider. The stored passkey is
+   then visible under Settings ▸ Passkeys inside the app.
 
 The app has no accounts, no sign-up, no network calls. Everything is
 encrypted locally with AES-256-GCM. The data-encryption key is wrapped
@@ -189,11 +193,15 @@ KeyNest はオフラインのパスワード／パスキー保管庫です。
 
 デモ手順:
 1. アプリ起動。オンボーディング画面で AutoFill の有効化方法を案内します。
+   「設定を開く」ボタンは ASSettingsHelper (iOS 17+) で
+   設定 ▸ パスワード ▸ パスワードとパスキーを自動入力 へ直接遷移します。
 2. 「あとで」をタップしてメイン画面へ。
 3. + ボタン（iPad サイドバーの左上 / iPhone は右上）で資格情報を追加。
-4. AutoFill 拡張の確認: 設定 ▸ 一般 ▸ パスワードとパスキーを自動入力
-   ▸ KeyNest を有効化。その後 Safari でログインフォームを開く。
-5. パスキーの確認 (iOS 17+): webauthn.io 等のサイトでパスキー登録。
+4. AutoFill 拡張の確認: 手順 1 で開いた自動入力設定パネルから KeyNest を
+   有効化し、Safari でログインフォームを開く。
+5. パスキーの確認 (iOS 17+): webauthn.io で Register をタップ。
+   KeyNest がパスキープロバイダとして表示されます。保存後は
+   設定 ▸ Passkeys から KeyNest 内に保管されたパスキーを一覧できます。
 
 アカウント不要、登録不要、ネットワーク通信なし。データは AES-256-GCM で
 暗号化され、データ暗号化鍵は Secure Enclave で封緘されます。

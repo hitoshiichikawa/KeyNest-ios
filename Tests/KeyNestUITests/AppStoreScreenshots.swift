@@ -65,6 +65,23 @@ final class AppStoreScreenshots: XCTestCase {
         attach(name: "05-sort")
     }
 
+    // 6. Passkeys list (Settings ▸ Passkeys with 3 seeded entries).
+    func test06Passkeys() {
+        let app = launchSeeded()
+        XCTAssertTrue(app.staticTexts["GitHub"].waitForExistence(timeout: 15))
+        XCTAssertTrue(tapToolbarButton(app, label: "Settings"),
+                      "Settings toolbar button not found")
+        _ = app.navigationBars["Settings"].waitForExistence(timeout: 5)
+        // The Passkeys row appears once Settings has mounted.
+        let passkeysRow = app.buttons["Passkeys"]
+        XCTAssertTrue(passkeysRow.waitForExistence(timeout: 5),
+                      "Passkeys settings row not found")
+        passkeysRow.tap()
+        // Wait on a known seeded rp.
+        _ = app.staticTexts["webauthn.io"].waitForExistence(timeout: 5)
+        attach(name: "06-passkeys")
+    }
+
     // MARK: - Helpers
 
     private func launchSeeded() -> XCUIApplication {

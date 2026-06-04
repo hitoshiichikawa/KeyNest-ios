@@ -15,7 +15,13 @@ public enum DemoSeeder {
 
     public static func seed(services: ServiceLocator) async throws {
         try await services.credentialRepository.clearAll()
+        try await services.passkeyRepository.clearAll()
 
+        try await seedCredentials(services: services)
+        try await seedPasskeys(services: services)
+    }
+
+    private static func seedCredentials(services: ServiceLocator) async throws {
         let entries: [(label: String, domain: String, user: String, pass: String, fields: [CustomField])] = [
             ("GitHub",     "github.com",        "octocat",            "p@ssw0rd-Github!2026",   []),
             ("Apple ID",   "appleid.apple.com", "hitoshi@example.com","S3cure-Apple#2026",      []),
@@ -35,6 +41,34 @@ public enum DemoSeeder {
                     customFields: entry.fields
                 )
             )
+        }
+    }
+
+    /// Seeds 3 passkeys via the same `PasskeyCreator` the AutoFill extension uses
+    /// so the bytes are indistinguishable from a real WebAuthn registration —
+    /// the screenshot then shows the real Passkeys list UI rather than mocked
+    /// rows.
+    private static func seedPasskeys(services: ServiceLocator) async throws {
+        let entries: [(rpId: String, userName: String, displayName: String)] = [
+            ("github.com",        "octocat",           "Octocat"),
+            ("webauthn.io",       "hitoshi",           "Hitoshi"),
+            ("appleid.apple.com", "hitoshi@example.com", "Hitoshi")
+        ]
+
+        for entry in entries {
+            let userHandle = Data("\(entry.rpId)-\(entry.userName)".utf8)
+            let input = PasskeyCreateInput(
+                rpId: entry.rpId,
+                rpDisplayName: nil,
+                userHandle: userHandle,
+                userName: entry.userName,
+                userDisplayName: entry.displayName,
+                isDiscoverable: true
+            )
+            let result = try services.passkeyCreator.create(input)
+            var request = result.savePasskeyRequest
+            try await services.passkeyRepository.save(request)
+            request.privateKey.resetBytes(in: 0..<request.privateKey.count)
         }
     }
 }
