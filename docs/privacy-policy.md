@@ -1,11 +1,11 @@
 ---
-title: KeyNest — Privacy Policy
+title: Privacy Policy
 permalink: /privacy/
 ---
 
 # Privacy Policy
 
-_Last updated: 2026-06-04_
+Last updated: 2026-06-04
 
 KeyNest ("the app") is an offline-first password and passkey manager
 developed by Hitoshi Ichikawa ("the developer"). This page describes
